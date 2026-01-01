@@ -2,7 +2,13 @@ import Product from '../model/productModel.js';
 import { uploadImageToS3, uploadMultipleImagesToS3, deleteImageFromS3 } from '../utils/s3Upload.js';
 
 export const createProductService = async (productData, images, adminId) => {
-  const { name, description, price, category, stock, isActive } = productData;
+  const {
+    name, description, brand, category,
+    unitType, perUnitWeightVolume, unitsPerUnitType,
+    mrp, offerPrice, singleUnitPrice,
+    stock, manfDate, expiryDate,
+    notifyCustomers, isOffer, isActive
+  } = productData;
 
   // Check if product with same name already exists
   const existingProduct = await Product.findOne({ name });
@@ -19,10 +25,20 @@ export const createProductService = async (productData, images, adminId) => {
   const product = new Product({
     name,
     description,
-    price,
+    brand,
     category,
+    unitType,
+    perUnitWeightVolume,
+    unitsPerUnitType: unitsPerUnitType || 1,
+    mrp,
+    offerPrice,
+    singleUnitPrice,
     stock: stock || 0,
+    manfDate: manfDate ? new Date(manfDate) : undefined,
+    expiryDate: expiryDate ? new Date(expiryDate) : undefined,
     images: imageUrls,
+    notifyCustomers: notifyCustomers !== undefined ? notifyCustomers : false,
+    isOffer: isOffer !== undefined ? isOffer : false,
     isActive: isActive !== undefined ? isActive : true,
     createdBy: adminId,
   });
@@ -33,7 +49,7 @@ export const createProductService = async (productData, images, adminId) => {
 
 export const getAllProductsService = async (isAdmin = false) => {
   let query = {};
-  
+
   // For non-admin users, only return active products
   if (!isAdmin) {
     query.isActive = true;
@@ -42,29 +58,35 @@ export const getAllProductsService = async (isAdmin = false) => {
   const products = await Product.find(query)
     .populate('createdBy', 'name email')
     .sort({ createdAt: -1 });
-  
+
   return products;
 };
 
 export const getProductByIdService = async (productId, isAdmin = false) => {
   let query = { _id: productId };
-  
+
   // For non-admin users, only return active products
   if (!isAdmin) {
     query.isActive = true;
   }
 
   const product = await Product.findOne(query).populate('createdBy', 'name email');
-  
+
   if (!product) {
     throw new Error('Product not found');
   }
-  
+
   return product;
 };
 
 export const updateProductService = async (productId, updateData, images, adminId) => {
-  const { name, description, price, category, stock, isActive, existingImages } = updateData;
+  const {
+    name, description, brand, category,
+    unitType, perUnitWeightVolume, unitsPerUnitType,
+    mrp, offerPrice, singleUnitPrice,
+    stock, manfDate, expiryDate,
+    notifyCustomers, isOffer, isActive, existingImages
+  } = updateData;
 
   const product = await Product.findById(productId);
   if (!product) {
@@ -81,7 +103,7 @@ export const updateProductService = async (productId, updateData, images, adminI
 
   // Handle image updates
   let imageUrls = existingImages || product.images || [];
-  
+
   // Upload new images if provided
   if (images && images.length > 0) {
     const newImageUrls = await uploadMultipleImagesToS3(images);
@@ -94,9 +116,19 @@ export const updateProductService = async (productId, updateData, images, adminI
     {
       ...(name && { name }),
       ...(description && { description }),
-      ...(price !== undefined && { price }),
+      ...(brand && { brand }),
       ...(category && { category }),
+      ...(unitType && { unitType }),
+      ...(perUnitWeightVolume && { perUnitWeightVolume }),
+      ...(unitsPerUnitType !== undefined && { unitsPerUnitType }),
+      ...(mrp !== undefined && { mrp }),
+      ...(offerPrice !== undefined && { offerPrice }),
+      ...(singleUnitPrice !== undefined && { singleUnitPrice }),
       ...(stock !== undefined && { stock }),
+      ...(manfDate && { manfDate: new Date(manfDate) }),
+      ...(expiryDate && { expiryDate: new Date(expiryDate) }),
+      ...(notifyCustomers !== undefined && { notifyCustomers }),
+      ...(isOffer !== undefined && { isOffer }),
       ...(isActive !== undefined && { isActive }),
       images: imageUrls,
     },

@@ -22,8 +22,8 @@ app.use(cors({
 // IMPORTANT: Do NOT use express.json() and express.urlencoded() for routes with file uploads
 // They interfere with multer's multipart/form-data parsing
 // Only apply them to routes that don't need file uploads
-app.use(express.json());
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Database connection
 connectDB();

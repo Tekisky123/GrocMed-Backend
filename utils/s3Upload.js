@@ -16,13 +16,12 @@ const BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME;
 export const uploadImageToS3 = async (file, folder = 'products') => {
   try {
     const fileName = `${folder}/${Date.now()}-${Math.round(Math.random() * 1e9)}-${file.originalname}`;
-    
+
     const uploadParams = {
       Bucket: BUCKET_NAME,
       Key: fileName,
       Body: file.buffer,
       ContentType: file.mimetype,
-      ACL: 'public-read',
     };
 
     const command = new PutObjectCommand(uploadParams);
@@ -32,7 +31,8 @@ export const uploadImageToS3 = async (file, folder = 'products') => {
     const imageUrl = `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
     return imageUrl;
   } catch (error) {
-    throw new Error('Failed to upload image to S3');
+    console.error('S3 Upload Error:', error);
+    throw new Error(`Failed to upload image to S3: ${error.message}`);
   }
 };
 
@@ -42,7 +42,8 @@ export const uploadMultipleImagesToS3 = async (files, folder = 'products') => {
     const imageUrls = await Promise.all(uploadPromises);
     return imageUrls;
   } catch (error) {
-    throw new Error('Failed to upload images to S3');
+    console.error('S3 Multiple Upload Error:', error);
+    throw new Error(`Failed to upload images to S3: ${error.message}`);
   }
 };
 
