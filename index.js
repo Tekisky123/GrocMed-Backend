@@ -4,6 +4,9 @@ import cors from 'cors';
 import connectDB from './db/connection.js';
 import adminRoutes from './routes/adminRoutes.js';
 import productRoutes from './routes/productRoutes.js';
+import deliveryPartnerRoutes from './routes/deliveryPartnerRoutes.js';
+import customerRoutes from './routes/customerRoutes.js';
+import categoryRoutes from './routes/categoryRoutes.js';
 import { errorHandler, notFoundHandler } from './middleware/errorMiddleware.js';
 
 dotenv.config();
@@ -31,6 +34,9 @@ connectDB();
 // Routes
 app.use('/api/admin', adminRoutes);
 app.use('/api/product', productRoutes);
+app.use('/api/admin/deliveryPartner', deliveryPartnerRoutes);
+app.use('/api/customer', customerRoutes);
+app.use('/api/category', categoryRoutes);
 
 // Health check route
 app.get('/health', (req, res) => {
@@ -49,6 +55,6 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-  // Server started
+  console.log(`Server is running on port ${PORT}`);
 });
 

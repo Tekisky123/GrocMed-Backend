@@ -5,6 +5,8 @@ import {
   updateProductService,
   deleteProductService,
   deleteProductImageService,
+  searchProductsService,
+  getSuggestedProductsService,
 } from '../services/productService.js';
 
 export const createProductController = async (req, res, next) => {
@@ -29,7 +31,7 @@ export const createProductController = async (req, res, next) => {
       const validImages = images.filter(img => {
         return img && img.buffer && img.mimetype && img.buffer.length > 0;
       });
-      
+
       if (validImages.length === 0 && images.length > 0) {
         return res.status(400).json({
           success: false,
@@ -166,6 +168,39 @@ export const deleteProductImageController = async (req, res, next) => {
       success: true,
       message: 'Image deleted successfully',
       data: product,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const searchProducts = async (req, res, next) => {
+  try {
+    const { query, category } = req.query;
+    // Public search - search only active products
+    const products = await searchProductsService(query, category, true);
+
+    res.status(200).json({
+      success: true,
+      message: 'Products found successfully',
+      count: products.length,
+      data: products,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getSuggestedProducts = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const products = await getSuggestedProductsService(id);
+
+    res.status(200).json({
+      success: true,
+      message: 'Suggested products retrieved successfully',
+      count: products.length,
+      data: products,
     });
   } catch (error) {
     next(error);

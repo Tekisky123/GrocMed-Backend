@@ -230,3 +230,154 @@ export const validateUpdateProduct = (req, res, next) => {
 
   next();
 };
+
+// Validate Delivery Partner Creation
+export const validateCreateDeliveryPartner = (req, res, next) => {
+  const { name, phone, email, password, vehicleType, vehicleNumber, licenseNumber } = req.body;
+
+  if (!name || !phone || !email || !password || !vehicleType || !vehicleNumber || !licenseNumber) {
+    return res.status(400).json({
+      success: false,
+      message: 'All fields are required',
+    });
+  }
+
+  // Validate email format
+  const emailRegex = /\S+@\S+\.\S+/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Please provide a valid email address',
+    });
+  }
+
+  // Validate phone number (basic validation)
+  if (phone.length < 10) {
+    return res.status(400).json({
+      success: false,
+      message: 'Phone number must be at least 10 digits',
+    });
+  }
+
+  // Validate vehicle type enum
+  const validVehicleTypes = ['Bike', 'Scooter', 'Car', 'Van', 'Truck'];
+  if (!validVehicleTypes.includes(vehicleType)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid vehicle type',
+    });
+  }
+
+  next();
+};
+
+// Validate Delivery Partner Update
+export const validateUpdateDeliveryPartner = (req, res, next) => {
+  const { phone, vehicleType, status } = req.body;
+
+  // Validate phone if provided
+  if (phone && phone.length < 10) {
+    return res.status(400).json({
+      success: false,
+      message: 'Phone number must be at least 10 digits',
+    });
+  }
+
+  // Validate vehicle type if provided
+  if (vehicleType) {
+    const validVehicleTypes = ['Bike', 'Scooter', 'Car', 'Van', 'Truck'];
+    if (!validVehicleTypes.includes(vehicleType)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid vehicle type',
+      });
+    }
+  }
+
+  // Validate status if provided
+  if (status) {
+    const validStatuses = ['Available', 'Busy', 'Offline'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid status',
+      });
+    }
+  }
+
+  next();
+};
+
+// Validate Customer Registration
+export const validateRegisterCustomer = (req, res, next) => {
+  const { name, phone, email, password } = req.body;
+
+  if (!name || !phone || !email || !password) {
+    return res.status(400).json({
+      success: false,
+      message: 'Name, phone, email, and password are required',
+    });
+  }
+
+  const emailRegex = /\S+@\S+\.\S+/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Please provide a valid email address',
+    });
+  }
+
+  if (phone.length < 10) {
+    return res.status(400).json({
+      success: false,
+      message: 'Phone number must be at least 10 digits',
+    });
+  }
+
+  if (password.length < 6) {
+    return res.status(400).json({
+      success: false,
+      message: 'Password must be at least 6 characters long',
+    });
+  }
+
+  next();
+};
+
+// Validate Customer Login
+export const validateLoginCustomer = (req, res, next) => {
+  const { email, phone, password } = req.body;
+
+  if ((!email && !phone) || !password) {
+    return res.status(400).json({
+      success: false,
+      message: 'Email/Phone and password are required',
+    });
+  }
+
+  next();
+};
+
+// Validate Customer Update
+export const validateUpdateCustomer = (req, res, next) => {
+  const { phone, email } = req.body;
+
+  if (email) {
+    const emailRegex = /\S+@\S+\.\S+/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid email address',
+      });
+    }
+  }
+
+  if (phone && phone.length < 10) {
+    return res.status(400).json({
+      success: false,
+      message: 'Phone number must be at least 10 digits',
+    });
+  }
+
+  next();
+};

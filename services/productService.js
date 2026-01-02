@@ -177,3 +177,43 @@ export const deleteProductImageService = async (productId, imageUrl) => {
   return product;
 };
 
+export const searchProductsService = async (query, category, onlyActive = true) => {
+  const searchCriteria = {};
+
+  if (onlyActive) {
+    searchCriteria.isActive = true;
+  }
+
+  if (query) {
+    searchCriteria.$or = [
+      { name: { $regex: query, $options: 'i' } },
+      { brand: { $regex: query, $options: 'i' } },
+      { description: { $regex: query, $options: 'i' } },
+    ];
+  }
+
+  if (category) {
+    searchCriteria.category = { $regex: category, $options: 'i' };
+  }
+
+  const products = await Product.find(searchCriteria).sort({ createdAt: -1 });
+  return products;
+};
+
+export const getSuggestedProductsService = async (productId) => {
+  const currentProduct = await Product.findById(productId);
+  if (!currentProduct) {
+    throw new Error('Product not found');
+  }
+
+  const suggestedProducts = await Product.find({
+    category: currentProduct.category,
+    _id: { $ne: productId }, // Exclude current product
+    isActive: true
+  })
+    .sort({ createdAt: -1 })
+    .limit(10); // Limit to 10 suggestions
+
+  return suggestedProducts;
+};
+

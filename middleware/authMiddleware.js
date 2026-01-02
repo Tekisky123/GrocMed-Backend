@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import Admin from '../model/adminModel.js';
+import Customer from '../model/customerModel.js';
 
 dotenv.config();
 
@@ -18,16 +19,26 @@ export const authenticateToken = async (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.TOKEN);
 
-    const admin = await Admin.findById(decoded.id).select('-password');
-
-    if (!admin || !admin.isActive) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid or inactive admin',
-      });
+    if (decoded.role === 'customer') {
+      const customer = await Customer.findById(decoded.id).select('-password');
+      if (!customer || !customer.isActive) {
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid or inactive customer',
+        });
+      }
+      req.customer = customer;
+    } else {
+      const admin = await Admin.findById(decoded.id).select('-password');
+      if (!admin || !admin.isActive) {
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid or inactive admin',
+        });
+      }
+      req.admin = admin;
     }
 
-    req.admin = admin;
     next();
   } catch (error) {
     if (error.name === 'JsonWebTokenError') {

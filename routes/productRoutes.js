@@ -8,6 +8,8 @@ import {
   updateProductController,
   deleteProductController,
   deleteProductImageController,
+  searchProducts,
+  getSuggestedProducts,
 } from '../controller/productController.js';
 import { authenticateToken } from '../middleware/authMiddleware.js';
 import { validateCreateProduct, validateUpdateProduct } from '../middleware/validationMiddleware.js';
@@ -21,6 +23,12 @@ router.get('/getAllProducts', getAllProductsController);
 
 // Get product by ID (only active products)
 router.get('/getProductById/:id', getProductByIdController);
+
+// Search products
+router.get('/search', searchProducts);
+
+// Get suggested products (based on category)
+router.get('/suggested/:id', getSuggestedProducts);
 
 // Protected routes - All require authentication
 // Create product
