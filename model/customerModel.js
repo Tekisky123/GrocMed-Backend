@@ -34,6 +34,22 @@ const customerSchema = new mongoose.Schema(
             type: String,
             required: [true, 'Password is required'],
         },
+        pan: {
+            type: String,
+            trim: true,
+            unique: true,
+            sparse: true,
+        },
+        adhaar: {
+            type: String,
+            trim: true,
+            unique: true,
+            sparse: true,
+        },
+        fcmToken: {
+            type: String,
+            trim: true,
+        },
         addresses: [addressSchema],
         isActive: {
             type: Boolean,

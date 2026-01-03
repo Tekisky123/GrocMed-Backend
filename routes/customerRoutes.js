@@ -6,7 +6,9 @@ import {
     getAllCustomers,
     getCustomerProfile,
     updateCustomerProfile,
-    deleteCustomer
+    deleteCustomer,
+    updateFcmToken,
+    searchCustomers,
 } from '../controller/customerController.js';
 import { authenticateToken } from '../middleware/authMiddleware.js';
 import {
@@ -25,9 +27,12 @@ router.post('/login', validateLoginCustomer, loginCustomer);
 router.post('/logout', authenticateToken, logoutCustomer);
 router.get('/profile', authenticateToken, getCustomerProfile);
 router.put('/profile', authenticateToken, validateUpdateCustomer, updateCustomerProfile);
+router.post('/update-fcm-token', authenticateToken, updateFcmToken);
 
 // Admin Routes for Customer Management
+// Admin Routes for Customer Management
 router.get('/getAllCustomers', authenticateToken, getAllCustomers);
+router.get('/search', authenticateToken, searchCustomers);
 router.get('/getCustomerById/:id', authenticateToken, getCustomerProfile);
 router.delete('/deleteCustomer/:id', authenticateToken, deleteCustomer);
 

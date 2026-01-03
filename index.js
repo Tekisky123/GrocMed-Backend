@@ -7,6 +7,9 @@ import productRoutes from './routes/productRoutes.js';
 import deliveryPartnerRoutes from './routes/deliveryPartnerRoutes.js';
 import customerRoutes from './routes/customerRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
+import cartRoutes from './routes/cartRoutes.js';
+import orderRoutes from './routes/orderRoutes.js';
+import adminOrderRoutes from './routes/adminOrderRoutes.js';
 import { errorHandler, notFoundHandler } from './middleware/errorMiddleware.js';
 
 dotenv.config();
@@ -35,8 +38,11 @@ connectDB();
 app.use('/api/admin', adminRoutes);
 app.use('/api/product', productRoutes);
 app.use('/api/admin/deliveryPartner', deliveryPartnerRoutes);
+app.use('/api/admin/order', adminOrderRoutes);
 app.use('/api/customer', customerRoutes);
 app.use('/api/category', categoryRoutes);
+app.use('/api/cart', cartRoutes);
+app.use('/api/order', orderRoutes);
 
 // Health check route
 app.get('/health', (req, res) => {

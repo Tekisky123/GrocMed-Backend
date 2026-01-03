@@ -341,6 +341,22 @@ export const validateRegisterCustomer = (req, res, next) => {
     });
   }
 
+
+
+  if (req.body.pan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(req.body.pan)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid PAN format',
+    });
+  }
+
+  if (req.body.adhaar && !/^\d{12}$/.test(req.body.adhaar)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid Adhaar format (must be 12 digits)',
+    });
+  }
+
   next();
 };
 

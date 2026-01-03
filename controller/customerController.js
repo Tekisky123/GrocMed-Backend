@@ -4,7 +4,9 @@ import {
     getAllCustomersService,
     getCustomerByIdService,
     updateCustomerService,
-    deleteCustomerService
+    deleteCustomerService,
+    updateCustomerFcmTokenService,
+    searchCustomersService,
 } from '../services/customerService.js';
 
 export const registerCustomer = async (req, res) => {
@@ -108,6 +110,53 @@ export const deleteCustomer = async (req, res) => {
         res.status(400).json({
             success: false,
             message: error.message,
+        });
+    }
+};
+
+export const updateFcmToken = async (req, res) => {
+    try {
+        const customerId = req.customer._id;
+        const { fcmToken } = req.body;
+        if (!fcmToken) throw new Error('FCM token is required');
+
+        await updateCustomerFcmTokenService(customerId, fcmToken);
+
+        res.status(200).json({
+            success: true,
+            message: 'FCM Token updated successfully'
+        });
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+export const searchCustomers = async (req, res) => {
+    try {
+        const { query } = req.query;
+        if (!query) {
+            const customers = await getAllCustomersService();
+            return res.status(200).json({
+                success: true,
+                count: customers.length,
+                data: customers
+            });
+        }
+
+        const customers = await searchCustomersService(query);
+
+        res.status(200).json({
+            success: true,
+            count: customers.length,
+            data: customers
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
         });
     }
 };
