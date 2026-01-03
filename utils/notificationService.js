@@ -42,7 +42,34 @@ try {
     console.error('Error initializing Firebase Admin:', error);
 }
 
+import { Expo } from 'expo-server-sdk';
+const expo = new Expo();
+
 export const sendPushNotification = async (fcmToken, title, body, data = {}) => {
+    // Check for Expo Push Token
+    if (Expo.isExpoPushToken(fcmToken)) {
+        console.log(`Sending Expo Push Notification to: ${fcmToken}`);
+        const messages = [{
+            to: fcmToken,
+            sound: 'default',
+            title,
+            body,
+            data,
+        }];
+
+        try {
+            const chunks = expo.chunkPushNotifications(messages);
+            for (let chunk of chunks) {
+                const ticketChunk = await expo.sendPushNotificationsAsync(chunk);
+                console.log('Expo Notification Ticket:', ticketChunk);
+            }
+            return { success: true, method: 'expo' };
+        } catch (error) {
+            console.error('Error sending Expo notification:', error);
+            return null;
+        }
+    }
+
     if (!firebaseInitialized) {
         console.log(`[MOCK NOTIFICATION] To: ${fcmToken} | Title: ${title} | Body: ${body}`);
         return { success: true, mock: true };
