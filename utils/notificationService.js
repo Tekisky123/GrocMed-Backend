@@ -12,12 +12,29 @@ let firebaseInitialized = false;
 
 try {
     if (process.env.FIREBASE_CREDENTIALS) {
-        const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
+        let serviceAccount = process.env.FIREBASE_CREDENTIALS;
+
+        // Check if it looks like a JSON object
+        if (serviceAccount.trim().startsWith('{')) {
+            try {
+                serviceAccount = JSON.parse(serviceAccount);
+            } catch (e) {
+                console.error('Failed to parse FIREBASE_CREDENTIALS JSON:', e.message);
+            }
+        }
+
+        // If it's a string (path) or object (parsed), cert() handles it
         admin.initializeApp({
             credential: admin.credential.cert(serviceAccount)
         });
+
         firebaseInitialized = true;
         console.log('Firebase Admin Initialized successfully.');
+    } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+        // Fallback to standard Google Auth variable
+        admin.initializeApp();
+        firebaseInitialized = true;
+        console.log('Firebase Admin Initialized via GOOGLE_APPLICATION_CREDENTIALS.');
     } else {
         console.warn('FIREBASE_CREDENTIALS not found in env. Notifications will be mocked.');
     }

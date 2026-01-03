@@ -114,9 +114,12 @@ export const updateOrderStatusService = async (orderId, status) => {
 
     // Send Push Notification
     if (order.customer && order.customer.fcmToken) {
+        console.log(`Sending notification to Customer: ${order.customer._id} | Token: ${order.customer.fcmToken}`);
         const title = 'Order Update';
         const body = `Your order #${order._id.toString().slice(-6)} is now ${status}`;
         await sendPushNotification(order.customer.fcmToken, title, body, { orderId: orderId });
+    } else {
+        console.log(`No FCM Token found for Customer: ${order.customer?._id}`);
     }
 
     return order;
