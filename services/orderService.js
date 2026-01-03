@@ -1,6 +1,7 @@
 import Order from '../model/orderModel.js';
 import Cart from '../model/cartModel.js';
 import Product from '../model/productModel.js';
+import { sendPushNotification } from '../utils/notificationService.js';
 
 export const createOrderService = async (customerId, orderData) => {
     const { shippingAddress, paymentMethod } = orderData;
