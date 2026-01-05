@@ -51,6 +51,8 @@ export const sendNotification = async (req, res, next) => {
         const totalTarget = recipients.length;
 
         console.log(`Sending Admin Notification "${title}" to ${totalTarget} users (${targetGroup})`);
+        console.log(`Recipients found: ${recipients.length}`);
+        if (recipients.length > 0) console.log(`Sample Token: ${recipients[0].fcmToken.substring(0, 10)}...`);
 
         // Send in background (pseudo) or await if critical. 
         // For better UX, we await to give accurate initial stats, but for scale, queue is better.
@@ -58,11 +60,35 @@ export const sendNotification = async (req, res, next) => {
         const promises = recipients.map(user => {
             if (user.fcmToken) {
                 return sendPushNotification(user.fcmToken, title, message, { type: 'admin_broadcast' })
-                    .then(res => {
+                    .then(async (res) => {
+                        console.log(`Result for ${user.fcmToken.substring(0, 10)}... :`, res);
+
                         if (res && (res.success || res.status === 'ok')) {
                             successCount++;
                         } else {
                             failureCount++;
+                            // Handle Invalid Token Cleanup
+                            if (res && res.error) {
+                                const errorCode = res.error.code;
+                                if (errorCode === 'messaging/invalid-argument' ||
+                                    errorCode === 'messaging/registration-token-not-registered' ||
+                                    errorCode === 'messaging/invalid-registration-token') {
+
+                                    console.log(`Removing invalid token for user ${user._id}`);
+
+                                    // Try to update both models since we don't know the type for sure in this array
+                                    // Optimization: Check if 'role' exists or try both. 
+                                    // Given we merged them into 'recipients', we can try updating both collections.
+                                    // Or safer: just set fcmToken to null.
+
+                                    try {
+                                        await Customer.updateOne({ _id: user._id }, { fcmToken: null });
+                                        await DeliveryPartner.updateOne({ _id: user._id }, { fcmToken: null });
+                                    } catch (cleanupErr) {
+                                        console.error('Failed to cleanup invalid token:', cleanupErr);
+                                    }
+                                }
+                            }
                         }
                     })
                     .catch(err => {
