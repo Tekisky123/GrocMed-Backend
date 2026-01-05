@@ -99,10 +99,6 @@ export const sendPushNotification = async (fcmToken, title, body, data = {}) => 
         console.error('Error sending message:', error);
         if (error.code) console.error('Error Code:', error.code);
         if (error.message) console.error('Error Message:', error.message);
-    } catch (error) {
-        console.error('Error sending message:', error);
-        if (error.code) console.error('Error Code:', error.code);
-        if (error.message) console.error('Error Message:', error.message);
 
         // Return the error so the controller can handle it (e.g., remove invalid tokens)
         return { success: false, error: error };
