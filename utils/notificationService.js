@@ -85,6 +85,15 @@ export const sendPushNotification = async (fcmToken, title, body, data = {}) => 
             title,
             body
         },
+        android: {
+            priority: 'high',
+            notification: {
+                channelId: 'default',
+                sound: 'default',
+                priority: 'high',
+                defaultSound: true
+            }
+        },
         data,
         token: fcmToken
     };
