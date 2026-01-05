@@ -66,6 +66,13 @@ const productSchema = new mongoose.Schema(
       min: [0, 'Stock must be a positive number'],
       default: 0,
     },
+    // Minimum Order Quantity
+    minimumQuantity: {
+      type: Number,
+      required: false,
+      min: [1, 'Minimum quantity must be at least 1'],
+      default: 1,
+    },
     // Dates
     manfDate: {
       type: Date,

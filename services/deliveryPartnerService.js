@@ -1,5 +1,6 @@
 import DeliveryPartner from '../model/deliveryPartnerModel.js';
 import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 
 export const createDeliveryPartnerService = async (partnerData, adminId) => {
     const { name, phone, email, password, vehicleType, vehicleNumber, licenseNumber } = partnerData;
@@ -82,5 +83,41 @@ export const deleteDeliveryPartnerService = async (id) => {
     }
 
     await DeliveryPartner.findByIdAndDelete(id);
+    return partner;
+};
+
+export const loginDeliveryPartnerService = async (credentials) => {
+    const { email, password } = credentials;
+
+    const partner = await DeliveryPartner.findOne({ email });
+    if (!partner) {
+        throw new Error('Delivery Partner not found');
+    }
+
+    if (!partner.isActive) {
+        throw new Error('Account is inactive. Contact admin.');
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, partner.password);
+    if (!isPasswordValid) {
+        throw new Error('Invalid credentials');
+    }
+
+    const token = jwt.sign(
+        { id: partner._id, role: 'delivery_partner', email: partner.email },
+        process.env.TOKEN,
+        { expiresIn: '7d' }
+    );
+
+    partner.password = undefined;
+    return { deliveryPartner: partner, token };
+};
+
+export const updateDeliveryPartnerFcmTokenService = async (id, fcmToken) => {
+    const partner = await DeliveryPartner.findByIdAndUpdate(
+        id,
+        { fcmToken },
+        { new: true }
+    ).select('-password');
     return partner;
 };

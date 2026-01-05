@@ -40,7 +40,33 @@ APIs for Admins to manage customer data, including searching and retrieving deta
 
 ### 3. Get Customer Details
 **Endpoint:** `GET /getCustomerById/:id`
-**Description:** Retrieve full profile of a specific customer.
+**Endpoint:** `GET /getCustomerById/:id`
+**Description:** Retrieve full profile of a specific customer, **including their order history and statistics**.
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "customer": {
+       "_id": "...",
+       "name": "...",
+       "phone": "...",
+       "email": "...",
+       "fcmToken": "..."
+    },
+    "orders": [
+       {
+          "_id": "...",
+          "totalAmount": 500,
+          "orderStatus": "Delivered",
+          "items": [...]
+       }
+    ],
+    "orderCount": 5,
+    "totalSpent": 2500
+  }
+}
+```
 
 ---
 

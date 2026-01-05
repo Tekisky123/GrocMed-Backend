@@ -13,11 +13,31 @@ export const createOrderService = async (customerId, orderData) => {
         throw new Error('Cart is empty');
     }
 
-    // Create order items snapshot
-    const orderItems = cart.items.map((item) => {
+    // Validate stock availability for all items before proceeding
+    const stockUpdates = [];
+    for (const item of cart.items) {
         if (!item.product) {
             throw new Error('Product in cart not found');
         }
+
+        const product = await Product.findById(item.product._id);
+        if (!product) {
+            throw new Error(`Product ${item.product.name} not found`);
+        }
+
+        if (product.stock < item.quantity) {
+            throw new Error(`Insufficient stock for ${product.name}. Available: ${product.stock}, Requested: ${item.quantity}`);
+        }
+
+        stockUpdates.push({
+            productId: product._id,
+            quantity: item.quantity,
+            currentStock: product.stock
+        });
+    }
+
+    // Create order items snapshot
+    const orderItems = cart.items.map((item) => {
         return {
             product: item.product._id,
             name: item.product.name,
@@ -46,6 +66,15 @@ export const createOrderService = async (customerId, orderData) => {
     });
 
     await order.save();
+
+    // Atomically deduct stock from products
+    for (const update of stockUpdates) {
+        await Product.findByIdAndUpdate(
+            update.productId,
+            { $inc: { stock: -update.quantity } },
+            { new: true }
+        );
+    }
 
     // Clear cart
     cart.items = [];

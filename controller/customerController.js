@@ -7,6 +7,7 @@ import {
     deleteCustomerService,
     updateCustomerFcmTokenService,
     searchCustomersService,
+    getCustomerWithOrdersService,
 } from '../services/customerService.js';
 
 export const registerCustomer = async (req, res) => {
@@ -68,10 +69,21 @@ export const getAllCustomers = async (req, res) => {
 export const getCustomerProfile = async (req, res) => {
     try {
         const customerId = req.customer ? req.customer._id : req.params.id; // From auth token or param
-        const customer = await getCustomerByIdService(customerId);
+
+        let data;
+        // If accessed via Admin ID param (req.params.id) and NOT self-profile (req.customer._id checking)
+        // Actually, safer check: if req.params.id exists, it's the Admin route /getCustomerById/:id
+        if (req.params.id) {
+            // Use service that includes orders
+            data = await getCustomerWithOrdersService(customerId);
+        } else {
+            // Standard profile view
+            data = await getCustomerByIdService(customerId);
+        }
+
         res.status(200).json({
             success: true,
-            data: customer,
+            data: data,
         });
     } catch (error) {
         res.status(404).json({

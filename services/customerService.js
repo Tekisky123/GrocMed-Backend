@@ -1,6 +1,7 @@
-import Customer from '../model/customerModel.js';
+import Order from '../model/orderModel.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import Customer from '../model/customerModel.js';
 
 export const registerCustomerService = async (customerData) => {
     const { name, phone, email, password, pan, adhaar } = customerData;
@@ -141,4 +142,18 @@ export const searchCustomersService = async (query) => {
         ]
     }).select('-password');
     return customers;
+};
+
+export const getCustomerWithOrdersService = async (customerId) => {
+    const customer = await Customer.findById(customerId).select('-password');
+    if (!customer) throw new Error('Customer not found');
+
+    const orders = await Order.find({ customer: customerId }).sort({ createdAt: -1 });
+
+    return {
+        customer,
+        orders,
+        orderCount: orders.length,
+        totalSpent: orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0)
+    };
 };

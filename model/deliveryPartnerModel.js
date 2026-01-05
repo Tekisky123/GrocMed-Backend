@@ -62,6 +62,10 @@ const deliveryPartnerSchema = new mongoose.Schema(
             ref: 'Admin',
             required: true,
         },
+        fcmToken: {
+            type: String,
+            default: null,
+        },
     },
     {
         timestamps: true,

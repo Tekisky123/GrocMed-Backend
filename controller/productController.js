@@ -43,6 +43,35 @@ export const createProductController = async (req, res, next) => {
 
     const product = await createProductService(productData, images, adminId);
 
+    // Broadcast logic
+    try {
+      if (req.body.notifyCustomers === 'true' || req.body.notifyCustomers === true) {
+        // Dynamic import to avoid circular dependencies if any, though import at top is fine usually
+        const { sendPushNotification } = await import('../utils/notificationService.js');
+        const Customer = (await import('../model/customerModel.js')).default;
+
+        // Find all customers with valid FCM token
+        const customers = await Customer.find({ fcmToken: { $exists: true, $ne: null } }).select('fcmToken');
+
+        if (customers.length > 0) {
+          console.log(`Broadcasting new product to ${customers.length} customers`);
+          const title = 'New Product Alert! 🚀';
+          const body = `Check out our new arrival: ${product.name}!`;
+          const data = { productId: product._id.toString() };
+
+          // Send in batches (basic loop for now)
+          // In production, use a queue or expo chunking explicitly for high volume
+          for (const customer of customers) {
+            if (customer.fcmToken) {
+              sendPushNotification(customer.fcmToken, title, body, data).catch(e => console.error('Broadcast error:', e));
+            }
+          }
+        }
+      }
+    } catch (notifError) {
+      console.error('Notification broadcast failed, but product created:', notifError);
+    }
+
     res.status(201).json({
       success: true,
       message: 'Product created successfully',

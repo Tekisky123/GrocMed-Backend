@@ -7,6 +7,8 @@ export const addToCartService = async (customerId, productId, quantity) => {
         throw new Error('Product not found');
     }
 
+    const minimumQty = product.minimumQuantity || 1;
+
     // Use offerPrice if available, otherwise singleUnitPrice
     const price = product.offerPrice || product.singleUnitPrice;
 
@@ -17,16 +19,34 @@ export const addToCartService = async (customerId, productId, quantity) => {
         const itemIndex = cart.items.findIndex((item) => item.product.toString() === productId);
 
         if (itemIndex > -1) {
-            // Update quantity
-            cart.items[itemIndex].quantity += quantity;
-            // Ensure price is updated to current price
-            cart.items[itemIndex].price = price;
+            // Update quantity (quantity parameter is the CHANGE/DIFF, not absolute)
+            const newQuantity = cart.items[itemIndex].quantity + quantity;
+
+            // Validate final quantity meets minimum (not the diff)
+            if (newQuantity < minimumQty && newQuantity > 0) {
+                throw new Error(`Total quantity must be at least ${minimumQty}`);
+            }
+
+            // Allow removal (quantity goes to 0 or negative)
+            if (newQuantity <= 0) {
+                cart.items.splice(itemIndex, 1);
+            } else {
+                cart.items[itemIndex].quantity = newQuantity;
+                // Ensure price is updated to current price
+                cart.items[itemIndex].price = price;
+            }
         } else {
-            // Add new item
+            // Add new item - validate initial quantity meets minimum
+            if (quantity < minimumQty) {
+                throw new Error(`Minimum quantity for ${product.name} is ${minimumQty}`);
+            }
             cart.items.push({ product: productId, quantity, price });
         }
     } else {
-        // Create new cart
+        // Create new cart - validate initial quantity meets minimum
+        if (quantity < minimumQty) {
+            throw new Error(`Minimum quantity for ${product.name} is ${minimumQty}`);
+        }
         cart = new Cart({
             customer: customerId,
             items: [{ product: productId, quantity, price }],
@@ -40,7 +60,7 @@ export const addToCartService = async (customerId, productId, quantity) => {
 export const getCartService = async (customerId) => {
     const cart = await Cart.findOne({ customer: customerId }).populate({
         path: 'items.product',
-        select: 'name images brand unitType perUnitWeightVolume singleUnitPrice mrp offerPrice isActive',
+        select: 'name images brand unitType perUnitWeightVolume singleUnitPrice mrp offerPrice isActive minimumQuantity stock',
     });
 
     if (!cart) {

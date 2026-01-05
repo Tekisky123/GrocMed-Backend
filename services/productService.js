@@ -6,7 +6,7 @@ export const createProductService = async (productData, images, adminId) => {
     name, description, brand, category,
     unitType, perUnitWeightVolume, unitsPerUnitType,
     mrp, offerPrice, singleUnitPrice,
-    stock, manfDate, expiryDate,
+    stock, minimumQuantity, manfDate, expiryDate,
     notifyCustomers, isOffer, isActive
   } = productData;
 
@@ -34,6 +34,7 @@ export const createProductService = async (productData, images, adminId) => {
     offerPrice,
     singleUnitPrice,
     stock: stock || 0,
+    minimumQuantity: minimumQuantity || 1,
     manfDate: manfDate ? new Date(manfDate) : undefined,
     expiryDate: expiryDate ? new Date(expiryDate) : undefined,
     images: imageUrls,
@@ -84,7 +85,7 @@ export const updateProductService = async (productId, updateData, images, adminI
     name, description, brand, category,
     unitType, perUnitWeightVolume, unitsPerUnitType,
     mrp, offerPrice, singleUnitPrice,
-    stock, manfDate, expiryDate,
+    stock, minimumQuantity, manfDate, expiryDate,
     notifyCustomers, isOffer, isActive, existingImages
   } = updateData;
 
@@ -125,6 +126,7 @@ export const updateProductService = async (productId, updateData, images, adminI
       ...(offerPrice !== undefined && { offerPrice }),
       ...(singleUnitPrice !== undefined && { singleUnitPrice }),
       ...(stock !== undefined && { stock }),
+      ...(minimumQuantity !== undefined && { minimumQuantity }),
       ...(manfDate && { manfDate: new Date(manfDate) }),
       ...(expiryDate && { expiryDate: new Date(expiryDate) }),
       ...(notifyCustomers !== undefined && { notifyCustomers }),
