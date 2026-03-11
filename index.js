@@ -13,6 +13,17 @@ import adminOrderRoutes from './routes/adminOrderRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
 import adminNotificationRoutes from './routes/adminNotificationRoutes.js';
+
+// --- Accounts & Finance Routes ---
+import financeRoutes from './routes/financeRoute.js';
+import purchaseInvoiceRoutes from './routes/purchaseRoute.js';
+import inventoryAdjustmentRoutes from './routes/stockAdjustmentRoute.js';
+import payrollRoutes from './routes/payrollRoute.js';
+import fixedAssetRoutes from './routes/fixedAssetRoute.js';
+import statutoryRoutes from './routes/statutoryRoute.js';
+import gstRoutes from './routes/gstRoute.js';
+import accountingReportRoutes from './routes/reportsRoute.js';
+
 import { errorHandler, notFoundHandler } from './middleware/errorMiddleware.js';
 
 dotenv.config();
@@ -45,6 +56,17 @@ app.use('/api/admin/order', adminOrderRoutes);
 app.use('/api/admin/dashboard', dashboardRoutes);
 app.use('/api/admin/report', reportRoutes);
 app.use('/api/admin/notification', adminNotificationRoutes);
+
+// --- Accounts & Finance APIs ---
+app.use('/api/admin/finance', financeRoutes);
+app.use('/api/admin/purchases', purchaseInvoiceRoutes);
+app.use('/api/admin/inventory', inventoryAdjustmentRoutes);
+app.use('/api/admin/payroll', payrollRoutes);
+app.use('/api/admin/assets', fixedAssetRoutes);
+app.use('/api/admin/statutory', statutoryRoutes);
+app.use('/api/admin/gst', gstRoutes);
+app.use('/api/admin/accounting-reports', accountingReportRoutes);
+
 app.use('/api/customer', customerRoutes);
 app.use('/api/category', categoryRoutes);
 app.use('/api/cart', cartRoutes);
