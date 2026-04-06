@@ -73,6 +73,17 @@ const productSchema = new mongoose.Schema(
       min: [1, 'Minimum quantity must be at least 1'],
       default: 1,
     },
+    // Accounting & Taxation
+    hsnCode: {
+      type: String,
+      required: false,
+      trim: true,
+    },
+    gstRate: {
+      type: Number,
+      enum: [0, 5, 12, 18, 28],
+      default: 0,
+    },
     // Dates
     manfDate: {
       type: Date,

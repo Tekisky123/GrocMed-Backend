@@ -25,6 +25,7 @@ import gstRoutes from './routes/gstRoute.js';
 import accountingReportRoutes from './routes/reportsRoute.js';
 
 import { errorHandler, notFoundHandler } from './middleware/errorMiddleware.js';
+import { reqLogger } from './middleware/reqLogger.js';
 
 dotenv.config();
 
@@ -44,6 +45,7 @@ app.use(cors({
 // Only apply them to routes that don't need file uploads
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(reqLogger);
 
 // Database connection
 connectDB();

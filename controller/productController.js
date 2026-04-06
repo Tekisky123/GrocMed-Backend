@@ -57,7 +57,7 @@ export const createProductController = async (req, res, next) => {
           console.log(`Broadcasting new product to ${customers.length} customers`);
           const title = 'New Product Alert! 🚀';
           const body = `Check out our new arrival: ${product.name}!`;
-          const data = { productId: product._id.toString() };
+          const data = { type: 'PRODUCT_ALERT', productId: product._id.toString() };
 
           // Send in batches (basic loop for now)
           // In production, use a queue or expo chunking explicitly for high volume

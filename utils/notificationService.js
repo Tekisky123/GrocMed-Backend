@@ -80,6 +80,14 @@ export const sendPushNotification = async (fcmToken, title, body, data = {}) => 
         return;
     }
 
+    // Firebase strict Android stringification
+    const stringifiedData = {};
+    if (data) {
+        for (const [key, value] of Object.entries(data)) {
+            stringifiedData[key] = String(value);
+        }
+    }
+
     const message = {
         notification: {
             title,
@@ -94,7 +102,7 @@ export const sendPushNotification = async (fcmToken, title, body, data = {}) => 
                 defaultSound: true
             }
         },
-        data,
+        data: stringifiedData,
         token: fcmToken
     };
 

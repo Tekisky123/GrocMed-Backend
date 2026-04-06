@@ -16,7 +16,12 @@ const orderItemSchema = new mongoose.Schema({
         type: Number,
         required: true,
     },
-    image: String // Snapshot of main image
+    image: String, // Snapshot of main image
+    gstRate: { // Snapshot of GST rate at order time
+        type: Number,
+        default: 0
+    },
+    hsnCode: String // Snapshot of HSN code at order time
 });
 
 const orderSchema = new mongoose.Schema(
@@ -36,12 +41,19 @@ const orderSchema = new mongoose.Schema(
             city: String,
             state: String,
             zip: String,
-            type: String
+            addressType: String
         },
         totalAmount: {
             type: Number,
             required: true,
         },
+        taxAmount: {
+            type: Number,
+            default: 0,
+        },
+        cgstAmount: { type: Number, default: 0 },
+        sgstAmount: { type: Number, default: 0 },
+        igstAmount: { type: Number, default: 0 },
         paymentMethod: {
             type: String,
             enum: ['COD', 'Online'], // Cash on Delivery or Online
@@ -52,9 +64,14 @@ const orderSchema = new mongoose.Schema(
             enum: ['Pending', 'Paid', 'Failed'],
             default: 'Pending',
         },
+        refundStatus: {
+            type: String,
+            enum: ['None', 'Pending', 'Completed', 'Failed'],
+            default: 'None',
+        },
         orderStatus: {
             type: String,
-            enum: ['Placed', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered', 'Cancelled'],
+            enum: ['Placed', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered', 'Cancelled', 'Returned'],
             default: 'Placed',
         },
         trackingHistory: [

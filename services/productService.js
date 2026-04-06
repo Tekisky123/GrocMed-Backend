@@ -7,7 +7,8 @@ export const createProductService = async (productData, images, adminId) => {
     unitType, perUnitWeightVolume, unitsPerUnitType,
     mrp, offerPrice, singleUnitPrice,
     stock, minimumQuantity, manfDate, expiryDate,
-    notifyCustomers, isOffer, isActive
+    notifyCustomers, isOffer, isActive,
+    hsnCode, gstRate
   } = productData;
 
   // Check if product with same name already exists
@@ -41,6 +42,8 @@ export const createProductService = async (productData, images, adminId) => {
     notifyCustomers: notifyCustomers !== undefined ? notifyCustomers : false,
     isOffer: isOffer !== undefined ? isOffer : false,
     isActive: isActive !== undefined ? isActive : true,
+    hsnCode: hsnCode || undefined,
+    gstRate: gstRate !== undefined ? gstRate : 0,
     createdBy: adminId,
   });
 
@@ -86,7 +89,8 @@ export const updateProductService = async (productId, updateData, images, adminI
     unitType, perUnitWeightVolume, unitsPerUnitType,
     mrp, offerPrice, singleUnitPrice,
     stock, minimumQuantity, manfDate, expiryDate,
-    notifyCustomers, isOffer, isActive, existingImages
+    notifyCustomers, isOffer, isActive, existingImages,
+    hsnCode, gstRate
   } = updateData;
 
   const product = await Product.findById(productId);
@@ -132,6 +136,8 @@ export const updateProductService = async (productId, updateData, images, adminI
       ...(notifyCustomers !== undefined && { notifyCustomers }),
       ...(isOffer !== undefined && { isOffer }),
       ...(isActive !== undefined && { isActive }),
+      ...(hsnCode !== undefined && { hsnCode }),
+      ...(gstRate !== undefined && { gstRate }),
       images: imageUrls,
     },
     { new: true, runValidators: true }
