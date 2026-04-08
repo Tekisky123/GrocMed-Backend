@@ -1,5 +1,9 @@
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
+import ExcelJS from 'exceljs';
+import Product from '../model/productModel.js';
+import Order from '../model/orderModel.js';
+import Customer from '../model/customerModel.js';
 import {
   createAdminService,
   getAllAdminsService,
@@ -118,3 +122,54 @@ export const loginAdminController = async (req, res, next) => {
   }
 };
 
+// --- GENERIC CSV EXPORT ---
+const exportCollectionToCSV = async (Model, res, filename) => {
+  const data = await Model.find().lean();
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Dump');
+  
+  if (data.length > 0) {
+    const keys = Array.from(new Set(data.flatMap(p => Object.keys(p))));
+    worksheet.columns = keys.map(k => ({ header: k, key: k }));
+    data.forEach(p => {
+       const row = {};
+       keys.forEach(k => { 
+         row[k] = typeof p[k] === 'object' && p[k] !== null ? JSON.stringify(p[k]) : p[k];
+       });
+       worksheet.addRow(row);
+    });
+  } else {
+    worksheet.columns = [{ header: 'Data', key: 'data' }];
+    worksheet.addRow({ data: 'No records found' });
+  }
+
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}.csv"`);
+  
+  await workbook.csv.write(res);
+  res.end();
+};
+
+export const exportProductsBackupController = async (req, res, next) => {
+  try {
+    await exportCollectionToCSV(Product, res, 'products_backup');
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const exportOrdersBackupController = async (req, res, next) => {
+  try {
+    await exportCollectionToCSV(Order, res, 'orders_backup');
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const exportCustomersBackupController = async (req, res, next) => {
+  try {
+    await exportCollectionToCSV(Customer, res, 'customers_backup');
+  } catch (error) {
+    next(error);
+  }
+};
