@@ -57,15 +57,17 @@ const journalEntrySchema = new mongoose.Schema(
     }
 );
 
-// Pre-save hook to ensure Debits equal Credits
-journalEntrySchema.pre('save', function (next) {
+// Pre-validate hook to calculate totalAmount before Mongoose validation checks it
+journalEntrySchema.pre('validate', function (next) {
     let totalDebit = 0;
     let totalCredit = 0;
 
-    this.entries.forEach(entry => {
-        totalDebit += entry.debit;
-        totalCredit += entry.credit;
-    });
+    if (this.entries && this.entries.length > 0) {
+        this.entries.forEach(entry => {
+            totalDebit += (entry.debit || 0);
+            totalCredit += (entry.credit || 0);
+        });
+    }
 
     // Rounding to 2 decimal places to avoid floating point issues
     totalDebit = Math.round(totalDebit * 100) / 100;
