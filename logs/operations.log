@@ -32,3 +32,10 @@
 [2026-04-15T09:16:10.112Z] [API-TRAFFIC] PUT /api/product/updateProduct/69df4ad404154d600ab3ffbb | Status: 200 | IP: ::1
 [2026-04-15T09:45:27.075Z] [API-TRAFFIC] POST /api/product/createProduct | Status: 400 | IP: ::1
 [2026-04-15T09:45:35.405Z] [API-TRAFFIC] POST /api/product/createProduct | Status: 400 | IP: ::1
+[2026-04-15T09:51:49.371Z] [API-TRAFFIC] POST /api/product/createProduct | Status: 400 | IP: ::1
+[2026-04-15T09:51:59.555Z] [API-TRAFFIC] POST /api/product/createProduct | Status: 400 | IP: ::1
+[2026-04-15T09:53:00.540Z] [API-TRAFFIC] POST /api/product/createProduct | Status: 400 | IP: ::1
+[2026-04-15T09:53:01.460Z] [API-TRAFFIC] POST /api/product/createProduct | Status: 400 | IP: ::1
+[2026-04-15T09:53:08.256Z] [API-TRAFFIC] POST /api/product/createProduct | Status: 400 | IP: ::1
+[2026-04-15T09:53:27.340Z] [API-TRAFFIC] POST /api/product/createProduct | Status: 400 | IP: ::1
+[2026-04-15T09:53:29.129Z] [API-TRAFFIC] POST /api/product/createProduct | Status: 400 | IP: ::1
