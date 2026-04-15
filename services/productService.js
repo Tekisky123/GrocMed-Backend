@@ -8,8 +8,21 @@ export const createProductService = async (productData, images, adminId) => {
     mrp, offerPrice, singleUnitPrice,
     stock, minimumQuantity, manfDate, expiryDate,
     notifyCustomers, isOffer, isActive,
-    hsnCode, gstRate
+    hsnCode, gstRate,
+    packagingOptions: packagingOptionsRaw,
   } = productData;
+
+  // Parse packagingOptions if sent as JSON string from FormData
+  let packagingOptions = [];
+  if (packagingOptionsRaw) {
+    try {
+      packagingOptions = typeof packagingOptionsRaw === 'string'
+        ? JSON.parse(packagingOptionsRaw)
+        : packagingOptionsRaw;
+    } catch {
+      packagingOptions = [];
+    }
+  }
 
   // Check if product with same name already exists
   const existingProduct = await Product.findOne({ name });
@@ -31,9 +44,10 @@ export const createProductService = async (productData, images, adminId) => {
     unitType,
     perUnitWeightVolume,
     unitsPerUnitType: unitsPerUnitType || 1,
-    mrp,
-    offerPrice,
-    singleUnitPrice,
+    mrp: mrp || 0,
+    offerPrice: offerPrice || 0,
+    singleUnitPrice: singleUnitPrice || 0,
+    packagingOptions,
     stock: stock || 0,
     minimumQuantity: minimumQuantity || 1,
     manfDate: manfDate ? new Date(manfDate) : undefined,
@@ -90,8 +104,21 @@ export const updateProductService = async (productId, updateData, images, adminI
     mrp, offerPrice, singleUnitPrice,
     stock, minimumQuantity, manfDate, expiryDate,
     notifyCustomers, isOffer, isActive, existingImages,
-    hsnCode, gstRate
+    hsnCode, gstRate,
+    packagingOptions: packagingOptionsRaw,
   } = updateData;
+
+  // Parse packagingOptions if sent as JSON string from FormData
+  let packagingOptions;
+  if (packagingOptionsRaw !== undefined) {
+    try {
+      packagingOptions = typeof packagingOptionsRaw === 'string'
+        ? JSON.parse(packagingOptionsRaw)
+        : packagingOptionsRaw;
+    } catch {
+      packagingOptions = [];
+    }
+  }
 
   const product = await Product.findById(productId);
   if (!product) {
@@ -138,6 +165,7 @@ export const updateProductService = async (productId, updateData, images, adminI
       ...(isActive !== undefined && { isActive }),
       ...(hsnCode !== undefined && { hsnCode }),
       ...(gstRate !== undefined && { gstRate }),
+      ...(packagingOptions !== undefined && { packagingOptions }),
       images: imageUrls,
     },
     { new: true, runValidators: true }

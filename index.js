@@ -23,6 +23,7 @@ import fixedAssetRoutes from './routes/fixedAssetRoute.js';
 import statutoryRoutes from './routes/statutoryRoute.js';
 import gstRoutes from './routes/gstRoute.js';
 import accountingReportRoutes from './routes/reportsRoute.js';
+import pincodeRoutes from './routes/pincodeRoutes.js';
 
 import { errorHandler, notFoundHandler } from './middleware/errorMiddleware.js';
 import { reqLogger } from './middleware/reqLogger.js';
@@ -73,6 +74,10 @@ app.use('/api/customer', customerRoutes);
 app.use('/api/category', categoryRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/order', orderRoutes);
+
+// Pincode Management
+app.use('/api/admin/pincodes', pincodeRoutes);
+app.use('/api/pincodes', pincodeRoutes);  // Public alias for customer app
 
 // Health check route
 app.get('/health', (req, res) => {

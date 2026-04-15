@@ -7,7 +7,7 @@ import {
 export const addToCart = async (req, res, next) => {
     try {
         const customerId = req.customer._id;
-        const { productId, quantity } = req.body;
+        const { productId, quantity, packagingOptionId } = req.body;
 
         if (!productId || !quantity) {
             return res.status(400).json({
@@ -16,7 +16,7 @@ export const addToCart = async (req, res, next) => {
             });
         }
 
-        const cart = await addToCartService(customerId, productId, parseInt(quantity));
+        const cart = await addToCartService(customerId, productId, parseInt(quantity), packagingOptionId || null);
 
         res.status(200).json({
             success: true,

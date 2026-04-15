@@ -1,55 +1,81 @@
 import Cart from '../model/cartModel.js';
 import Product from '../model/productModel.js';
 
-export const addToCartService = async (customerId, productId, quantity) => {
+export const addToCartService = async (customerId, productId, quantity, packagingOptionId = null) => {
     const product = await Product.findById(productId);
-    if (!product) {
-        throw new Error('Product not found');
+    if (!product) throw new Error('Product not found');
+
+    // Determine price and minQty based on packaging option
+    let price;
+    let minimumQty;
+    let packagingLabel = null;
+
+    if (packagingOptionId && product.packagingOptions?.length > 0) {
+        const option = product.packagingOptions.find(
+            (o) => o._id.toString() === packagingOptionId.toString()
+        );
+        if (!option) throw new Error('Packaging option not found');
+
+        price = option.salePrice;
+        minimumQty = option.minQty || 1;
+        packagingLabel = option.label;
+    } else {
+        // Fallback to product-level pricing
+        price = product.offerPrice || product.singleUnitPrice || product.mrp;
+        minimumQty = product.minimumQuantity || 1;
     }
 
-    const minimumQty = product.minimumQuantity || 1;
-
-    // Use offerPrice if available, otherwise singleUnitPrice
-    const price = product.offerPrice || product.singleUnitPrice;
+    // Unique key per product + option combination
+    const optionKey = packagingOptionId ? packagingOptionId.toString() : 'default';
 
     let cart = await Cart.findOne({ customer: customerId });
 
     if (cart) {
-        // Check if product exists in cart
-        const itemIndex = cart.items.findIndex((item) => item.product.toString() === productId);
+        // Find existing item matching product + same packaging option
+        const itemIndex = cart.items.findIndex(
+            (item) =>
+                item.product.toString() === productId &&
+                (item.packagingOptionId?.toString() || 'default') === optionKey
+        );
 
         if (itemIndex > -1) {
-            // Update quantity (quantity parameter is the CHANGE/DIFF, not absolute)
             const newQuantity = cart.items[itemIndex].quantity + quantity;
 
-            // Validate final quantity meets minimum (not the diff)
             if (newQuantity < minimumQty && newQuantity > 0) {
                 throw new Error(`Total quantity must be at least ${minimumQty}`);
             }
 
-            // Allow removal (quantity goes to 0 or negative)
             if (newQuantity <= 0) {
                 cart.items.splice(itemIndex, 1);
             } else {
                 cart.items[itemIndex].quantity = newQuantity;
-                // Ensure price is updated to current price
                 cart.items[itemIndex].price = price;
             }
         } else {
-            // Add new item - validate initial quantity meets minimum
             if (quantity < minimumQty) {
                 throw new Error(`Minimum quantity for ${product.name} is ${minimumQty}`);
             }
-            cart.items.push({ product: productId, quantity, price });
+            cart.items.push({
+                product: productId,
+                quantity,
+                price,
+                packagingOptionId: packagingOptionId || null,
+                packagingLabel,
+            });
         }
     } else {
-        // Create new cart - validate initial quantity meets minimum
         if (quantity < minimumQty) {
             throw new Error(`Minimum quantity for ${product.name} is ${minimumQty}`);
         }
         cart = new Cart({
             customer: customerId,
-            items: [{ product: productId, quantity, price }],
+            items: [{
+                product: productId,
+                quantity,
+                price,
+                packagingOptionId: packagingOptionId || null,
+                packagingLabel,
+            }],
         });
     }
 
@@ -60,7 +86,7 @@ export const addToCartService = async (customerId, productId, quantity) => {
 export const getCartService = async (customerId) => {
     const cart = await Cart.findOne({ customer: customerId }).populate({
         path: 'items.product',
-        select: 'name images brand unitType perUnitWeightVolume singleUnitPrice mrp offerPrice isActive minimumQuantity stock',
+        select: 'name images brand unitType perUnitWeightVolume singleUnitPrice mrp offerPrice isActive minimumQuantity stock packagingOptions',
     });
 
     if (!cart) {
@@ -69,11 +95,19 @@ export const getCartService = async (customerId) => {
     return cart;
 };
 
-export const removeFromCartService = async (customerId, productId) => {
+export const removeFromCartService = async (customerId, productId, packagingOptionId = null) => {
     const cart = await Cart.findOne({ customer: customerId });
     if (!cart) throw new Error('Cart not found');
 
-    cart.items = cart.items.filter((item) => item.product.toString() !== productId);
+    const optionKey = packagingOptionId ? packagingOptionId.toString() : null;
+
+    cart.items = cart.items.filter((item) => {
+        if (item.product.toString() !== productId) return true;
+        // If optionKey given, only remove matching option; otherwise remove all for product
+        if (optionKey) return item.packagingOptionId?.toString() !== optionKey;
+        return false;
+    });
+
     await cart.save();
     return cart;
 };

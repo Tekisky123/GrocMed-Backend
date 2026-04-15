@@ -57,8 +57,8 @@ const journalEntrySchema = new mongoose.Schema(
     }
 );
 
-// Pre-validate hook to calculate totalAmount before Mongoose validation checks it
-journalEntrySchema.pre('validate', function (next) {
+// Pre-validate hook to calculate totalAmount and enforce Dr == Cr rule
+journalEntrySchema.pre('validate', function () {
     let totalDebit = 0;
     let totalCredit = 0;
 
@@ -69,16 +69,19 @@ journalEntrySchema.pre('validate', function (next) {
         });
     }
 
-    // Rounding to 2 decimal places to avoid floating point issues
+    // Round to 2 decimal places to avoid floating point issues
     totalDebit = Math.round(totalDebit * 100) / 100;
     totalCredit = Math.round(totalCredit * 100) / 100;
 
     if (totalDebit !== totalCredit) {
-        return next(new Error(`Total Debits (${totalDebit}) must equal Total Credits (${totalCredit}).`));
+        this.invalidate(
+            'entries',
+            `Total Debits (${totalDebit}) must equal Total Credits (${totalCredit}).`
+        );
+        return;
     }
 
     this.totalAmount = totalDebit;
-    next();
 });
 
 export default mongoose.model('JournalEntry', journalEntrySchema);

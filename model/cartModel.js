@@ -15,7 +15,17 @@ const cartItemSchema = new mongoose.Schema({
     price: {
         type: Number,
         required: true,
-    }
+    },
+    packagingOptionId: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: false,
+        default: null,
+    },
+    packagingLabel: {
+        type: String,
+        required: false,
+        default: null,
+    },
 });
 
 const cartSchema = new mongoose.Schema(
@@ -38,7 +48,6 @@ const cartSchema = new mongoose.Schema(
     }
 );
 
-// Calculate total amount before saving
 // Calculate total amount before saving
 cartSchema.pre('save', function () {
     this.totalAmount = this.items.reduce((total, item) => {

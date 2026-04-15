@@ -57,9 +57,10 @@ const fixedAssetSchema = new mongoose.Schema(
 );
 
 // Pre-save hook to ensure math is universally correct
-fixedAssetSchema.pre('save', function (next) {
+fixedAssetSchema.pre('save', function () {
     if (this.accumulatedDepreciation > this.purchaseValue) {
-        return next(new Error('Accumulated Depreciation cannot exceed Purchase Value.'));
+        this.invalidate('accumulatedDepreciation', 'Accumulated Depreciation cannot exceed Purchase Value.');
+        return;
     }
 
     const computedNBV = this.purchaseValue - this.accumulatedDepreciation;
@@ -68,8 +69,6 @@ fixedAssetSchema.pre('save', function (next) {
     if (this.netBookValue !== computedNBV) {
         this.netBookValue = computedNBV;
     }
-
-    next();
 });
 
 export default mongoose.model('FixedAsset', fixedAssetSchema);

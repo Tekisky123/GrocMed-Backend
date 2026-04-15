@@ -57,7 +57,7 @@ const salarySlipSchema = new mongoose.Schema(
 );
 
 // Pre-save hook to ensure math is universally correct
-salarySlipSchema.pre('save', function (next) {
+salarySlipSchema.pre('save', function () {
     this.earnings.grossPay = this.earnings.basic + this.earnings.hra + this.earnings.allowances;
     this.deductions.totalDeductions = this.deductions.tds + this.deductions.pf + this.deductions.esic;
 
@@ -66,8 +66,6 @@ salarySlipSchema.pre('save', function (next) {
     if (this.netPay !== computedNetPay) {
         this.netPay = computedNetPay; // Auto-corrects if payload was slightly off
     }
-
-    next();
 });
 
 export default mongoose.model('SalarySlip', salarySlipSchema);

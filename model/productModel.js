@@ -25,40 +25,81 @@ const productSchema = new mongoose.Schema(
     // Packaging Information
     unitType: {
       type: String,
-      required: [true, 'Packaging type is required'],
+      required: false,
       trim: true,
-      // Examples: "Box", "Bottle", "Packet", "Bag", "Can", etc.
     },
     perUnitWeightVolume: {
       type: String,
-      required: [true, 'Unit weight/volume is required'],
+      required: false,
       trim: true,
-      // Examples: "500g", "1L", "250ml", "1kg", etc.
     },
     unitsPerUnitType: {
       type: Number,
-      required: [true, 'Units per package is required'],
+      required: false,
       min: [1, 'Units per package must be at least 1'],
       default: 1,
-      // Example: 12 (means 12 pieces per box)
     },
-    // Package Pricing
+    // Package Pricing (legacy — kept for backward compat)
     mrp: {
       type: Number,
-      required: [true, 'Package MRP is required'],
+      required: false,
       min: [0, 'MRP must be a positive number'],
+      default: 0,
     },
     offerPrice: {
       type: Number,
-      required: [true, 'Package sale price is required'],
+      required: false,
       min: [0, 'Offer price must be a positive number'],
+      default: 0,
     },
-    // Single Unit Pricing
     singleUnitPrice: {
       type: Number,
-      required: [true, 'Single unit price is required'],
+      required: false,
       min: [0, 'Single unit price must be a positive number'],
+      default: 0,
     },
+    // ─── Multi-Packaging Options ───────────────────────────────────────────────
+    // Example: [
+    //   { label: "Carton (24 packs)", unitsPerPack: 24, mrp: 480, salePrice: 420, minQty: 1 },
+    //   { label: "Strip of 15 pieces", unitsPerPack: 15, mrp: 120, salePrice: 105, minQty: 2 }
+    // ]
+    packagingOptions: [
+      {
+        label: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        unitsPerPack: {
+          type: Number,
+          required: true,
+          min: [1, 'Units per pack must be at least 1'],
+          default: 1,
+        },
+        mrp: {
+          type: Number,
+          required: true,
+          min: [0, 'MRP must be positive'],
+        },
+        salePrice: {
+          type: Number,
+          required: true,
+          min: [0, 'Sale price must be positive'],
+        },
+        minQty: {
+          type: Number,
+          required: false,
+          min: [1, 'Minimum quantity must be at least 1'],
+          default: 1,
+        },
+        stock: {
+          type: Number,
+          required: false,
+          min: [0, 'Stock must be positive'],
+          default: 0,
+        },
+      },
+    ],
     // Stock
     stock: {
       type: Number,
@@ -66,7 +107,7 @@ const productSchema = new mongoose.Schema(
       min: [0, 'Stock must be a positive number'],
       default: 0,
     },
-    // Minimum Order Quantity
+    // Minimum Order Quantity (global fallback)
     minimumQuantity: {
       type: Number,
       required: false,
@@ -88,12 +129,10 @@ const productSchema = new mongoose.Schema(
     manfDate: {
       type: Date,
       required: false,
-      // Manufacturing Date
     },
     expiryDate: {
       type: Date,
       required: false,
-      // Expiration Date
     },
     // Images
     images: {
@@ -104,12 +143,10 @@ const productSchema = new mongoose.Schema(
     notifyCustomers: {
       type: Boolean,
       default: false,
-      // Broadcast notification to customers
     },
     isOffer: {
       type: Boolean,
       default: false,
-      // Special offer flag
     },
     isActive: {
       type: Boolean,
@@ -125,14 +162,6 @@ const productSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
-
-// Validation: Ensure offer price doesn't exceed MRP
-productSchema.pre('save', async function () {
-  if (this.offerPrice > this.mrp) {
-    throw new Error('Offer price cannot be greater than MRP');
-  }
-});
-
 
 const Product = mongoose.model('Product', productSchema);
 

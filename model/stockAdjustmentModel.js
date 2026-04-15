@@ -38,15 +38,15 @@ const stockAdjustmentSchema = new mongoose.Schema(
 );
 
 // Pre-save validation: Ensure 'quantity' aligns with 'movementType'
-stockAdjustmentSchema.pre('save', function (next) {
+stockAdjustmentSchema.pre('save', function () {
     if (this.movementType === 'Inward' && this.quantity <= 0) {
-        return next(new Error('Inward movement quantity must be positive.'));
+        this.invalidate('quantity', 'Inward movement quantity must be positive.');
+        return;
     }
     if ((this.movementType === 'Outward' || this.movementType === 'Shrinkage/Damaged') && this.quantity >= 0) {
-        // Force it to be negative if they accidentally submitted a positive number for outward
+        // Force negative for outward/damaged movements
         this.quantity = -Math.abs(this.quantity);
     }
-    next();
 });
 
 export default mongoose.model('StockAdjustment', stockAdjustmentSchema);
