@@ -121,3 +121,57 @@ export const updateDeliveryPartnerFcmTokenService = async (id, fcmToken) => {
     ).select('-password');
     return partner;
 };
+
+// --- New Services for Partner App ---
+
+import Order from '../model/orderModel.js';
+
+export const getAssignedOrdersService = async (partnerId) => {
+    const orders = await Order.find({ deliveryPartner: partnerId })
+        .populate('customer', 'name phone email')
+        .sort({ updatedAt: -1 });
+    return orders;
+};
+
+export const getPartnerStatsService = async (partnerId) => {
+    const totalDeliveries = await Order.countDocuments({ 
+        deliveryPartner: partnerId, 
+        orderStatus: 'Delivered' 
+    });
+
+    const pendingDeliveries = await Order.countDocuments({ 
+        deliveryPartner: partnerId, 
+        orderStatus: { $in: ['Shipped', 'Out for Delivery', 'Packed'] } 
+    });
+
+    // Simple earnings logic: ₹40 per delivery (placeholder)
+    const totalEarnings = totalDeliveries * 40;
+
+    // Get recent activities (last 5 status changes for this partner)
+    const recentOrders = await Order.find({ deliveryPartner: partnerId })
+        .sort({ updatedAt: -1 })
+        .limit(5)
+        .select('orderStatus updatedAt _id');
+
+    return {
+        totalDeliveries,
+        pendingDeliveries,
+        totalEarnings,
+        recentActivities: recentOrders.map(o => ({
+            id: o._id,
+            status: o.orderStatus,
+            time: o.updatedAt,
+            orderId: o._id
+        }))
+    };
+};
+
+import AdminNotification from '../model/adminNotificationModel.js';
+
+export const getPartnerNotificationsService = async () => {
+    const notifications = await AdminNotification.find({
+        targetAudience: { $in: ['all', 'delivery_partners'] },
+        status: 'sent'
+    }).sort({ sentAt: -1 });
+    return notifications;
+};

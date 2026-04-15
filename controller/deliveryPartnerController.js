@@ -6,6 +6,9 @@ import {
     deleteDeliveryPartnerService,
     loginDeliveryPartnerService,
     updateDeliveryPartnerFcmTokenService,
+    getAssignedOrdersService,
+    getPartnerStatsService,
+    getPartnerNotificationsService,
 } from '../services/deliveryPartnerService.js';
 
 export const createDeliveryPartner = async (req, res) => {
@@ -144,5 +147,44 @@ export const updateFcmToken = async (req, res) => {
             success: false,
             message: error.message,
         });
+    }
+};
+
+export const getAssignedOrders = async (req, res) => {
+    try {
+        const partnerId = req.user?.id;
+        const orders = await getAssignedOrdersService(partnerId);
+        res.status(200).json({
+            success: true,
+            message: 'Assigned orders retrieved successfully',
+            data: orders,
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const getDashboardStats = async (req, res) => {
+    try {
+        const partnerId = req.user?.id;
+        const stats = await getPartnerStatsService(partnerId);
+        res.status(200).json({
+            success: true,
+            data: stats,
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const getNotifications = async (req, res) => {
+    try {
+        const notifications = await getPartnerNotificationsService();
+        res.status(200).json({
+            success: true,
+            data: notifications,
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
     }
 };

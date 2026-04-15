@@ -145,19 +145,22 @@ export const trackOrderService = async (orderId, customerId) => {
 export const getAllOrdersService = async () => {
     const orders = await Order.find({})
         .populate('customer', 'name phone email')
+        .populate('deliveryPartner', 'name phone email')
         .sort({ createdAt: -1 });
     return orders;
 };
 
 export const getOrderByIdForAdminService = async (orderId) => {
-    const order = await Order.findById(orderId).populate('customer', 'name phone email');
+    const order = await Order.findById(orderId)
+        .populate('customer', 'name phone email')
+        .populate('deliveryPartner', 'name phone email');
     if (!order) {
         throw new Error('Order not found');
     }
     return order;
 };
 
-export const updateOrderStatusService = async (orderId, status) => {
+export const updateOrderStatusService = async (orderId, status, deliveryPartnerId = null) => {
     const validStatuses = ['Placed', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered', 'Cancelled', 'Returned'];
     if (!validStatuses.includes(status)) {
         throw new Error('Invalid order status');
@@ -176,9 +179,14 @@ export const updateOrderStatusService = async (orderId, status) => {
     }
 
     order.orderStatus = status;
+    if (deliveryPartnerId) {
+        order.deliveryPartner = deliveryPartnerId;
+    }
     order.trackingHistory.push({
         status: status,
-        description: `Order status updated to ${status}`,
+        description: deliveryPartnerId 
+            ? `Order status updated to ${status} and assigned to delivery partner.` 
+            : `Order status updated to ${status}`,
         timestamp: new Date(),
     });
 
@@ -202,17 +210,26 @@ export const updateOrderStatusService = async (orderId, status) => {
 
     await order.save();
 
-    // Send Push Notification
-    if (order.customer && order.customer.fcmToken) {
-        console.log(`Sending notification to Customer: ${order.customer._id} | Token: ${order.customer.fcmToken}`);
+    // Re-populate for comprehensive return
+    const updatedOrder = await Order.findById(orderId)
+        .populate('customer', 'name phone email fcmToken')
+        .populate('deliveryPartner', 'name phone email fcmToken');
+
+    // Send Push Notification to Customer
+    if (updatedOrder.customer && updatedOrder.customer.fcmToken) {
         const title = 'Order Update';
-        const body = `Your order #${order._id.toString().slice(-6)} is now ${status}`;
-        await sendPushNotification(order.customer.fcmToken, title, body, { type: 'ORDER_UPDATE', orderId: orderId.toString() });
-    } else {
-        console.log(`No FCM Token found for Customer: ${order.customer?._id}`);
+        const body = `Your order #${updatedOrder._id.toString().slice(-6)} is now ${status}`;
+        await sendPushNotification(updatedOrder.customer.fcmToken, title, body, { type: 'ORDER_UPDATE', orderId: orderId.toString() });
     }
 
-    return order;
+    // Send Push Notification to Delivery Partner (if assigned)
+    if (updatedOrder.deliveryPartner && updatedOrder.deliveryPartner.fcmToken) {
+        const title = 'New Task Update';
+        const body = `Order #${updatedOrder._id.toString().slice(-6)}: Status changed to ${status}`;
+        await sendPushNotification(updatedOrder.deliveryPartner.fcmToken, title, body, { type: 'PARTNER_ORDER_UPDATE', orderId: orderId.toString() });
+    }
+
+    return updatedOrder;
 };
 
 export const searchOrdersService = async (query) => {
@@ -240,6 +257,7 @@ export const searchOrdersService = async (query) => {
 
     const orders = await Order.find(searchCriteria)
         .populate('customer', 'name phone email')
+        .populate('deliveryPartner', 'name phone email')
         .sort({ createdAt: -1 });
 
     return orders;
