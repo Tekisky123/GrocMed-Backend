@@ -8,8 +8,7 @@ export const errorHandler = (err, req, res, next) => {
     statusCode = 404;
   } else if (
     err.message === 'Admin with this email already exists' ||
-    err.message === 'Email already in use by another admin' ||
-    err.message === 'Product with this name already exists'
+    err.message === 'Email already in use by another admin' 
   ) {
     statusCode = 400;
   } else if (

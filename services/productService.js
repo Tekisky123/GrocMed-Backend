@@ -24,11 +24,7 @@ export const createProductService = async (productData, images, adminId) => {
     }
   }
 
-  // Check if product with same name already exists
-  const existingProduct = await Product.findOne({ name });
-  if (existingProduct) {
-    throw new Error('Product with this name already exists');
-  }
+
 
   // Upload images to S3
   let imageUrls = [];
@@ -125,13 +121,6 @@ export const updateProductService = async (productId, updateData, images, adminI
     throw new Error('Product not found');
   }
 
-  // Check if name is being updated and if it already exists
-  if (name && name !== product.name) {
-    const existingProduct = await Product.findOne({ name, _id: { $ne: productId } });
-    if (existingProduct) {
-      throw new Error('Product with this name already exists');
-    }
-  }
 
   // Handle image updates
   let imageUrls = existingImages || product.images || [];
