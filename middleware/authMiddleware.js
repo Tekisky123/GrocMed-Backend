@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import Admin from '../model/adminModel.js';
 import Customer from '../model/customerModel.js';
+import DeliveryPartner from '../model/deliveryPartnerModel.js';
 
 dotenv.config();
 
@@ -28,7 +29,16 @@ export const authenticateToken = async (req, res, next) => {
         });
       }
       req.customer = customer;
-    } else {
+    } else if (decoded.role === 'delivery_partner') {
+      const partner = await DeliveryPartner.findById(decoded.id).select('-password');
+      if (!partner || !partner.isActive) {
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid or inactive delivery partner',
+        });
+      }
+      req.deliveryPartner = partner;
+    } else if (decoded.role === 'admin') {
       const admin = await Admin.findById(decoded.id).select('-password');
       if (!admin || !admin.isActive) {
         return res.status(401).json({
@@ -37,6 +47,11 @@ export const authenticateToken = async (req, res, next) => {
         });
       }
       req.admin = admin;
+    } else {
+      return res.status(401).json({
+        success: false,
+        message: 'Unauthorized role',
+      });
     }
 
     next();
