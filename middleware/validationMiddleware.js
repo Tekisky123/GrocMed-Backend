@@ -78,13 +78,13 @@ export const validateCreateProduct = (req, res, next) => {
     });
   }
 
-  // Validate packaging fields
-  if (!unitType || !perUnitWeightVolume) {
-    return res.status(400).json({
-      success: false,
-      message: 'Packaging type and unit weight/volume are required',
-    });
-  }
+  // Validate packaging fields (Optional)
+  // if (!unitType || !perUnitWeightVolume) {
+  //   return res.status(400).json({
+  //     success: false,
+  //     message: 'Packaging type and unit weight/volume are required',
+  //   });
+  // }
 
   // Validate units per package
   if (parsedUnitsPerUnitType !== undefined) {
