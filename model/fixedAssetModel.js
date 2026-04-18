@@ -9,8 +9,7 @@ const fixedAssetSchema = new mongoose.Schema(
         },
         assetClass: {
             type: String,
-            required: [true, 'Asset class is required'],
-            enum: ['Plant & Machinery', 'Furniture & Fixtures', 'Computers & Peripherals', 'Vehicles', 'Buildings'],
+            required: [true, 'Asset class is required']
         },
         purchaseDate: {
             type: Date,

@@ -13,6 +13,7 @@ import adminOrderRoutes from './routes/adminOrderRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
 import adminNotificationRoutes from './routes/adminNotificationRoutes.js';
+import settingRoutes from './routes/settingRoutes.js';
 
 // --- Accounts & Finance Routes ---
 import financeRoutes from './routes/financeRoute.js';
@@ -59,6 +60,8 @@ app.use('/api/admin/order', adminOrderRoutes);
 app.use('/api/admin/dashboard', dashboardRoutes);
 app.use('/api/admin/report', reportRoutes);
 app.use('/api/admin/notification', adminNotificationRoutes);
+app.use('/api/admin/settings', settingRoutes);
+app.use('/api/settings', settingRoutes); // Public alias for frontend delivery evaluation
 
 // --- Accounts & Finance APIs ---
 app.use('/api/admin/finance', financeRoutes);

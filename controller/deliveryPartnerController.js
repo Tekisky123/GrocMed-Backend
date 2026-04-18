@@ -129,11 +129,11 @@ export const updateFcmToken = async (req, res) => {
         // Wait, authenticateToken usually sets req.user. 
         // Delivery Partner Login sets: { id: partner._id, role: 'delivery_partner', email: ... }
 
-        const id = req.user?.id || req.body.id; // Fallback to body for now if middleware varies
+        const id = req.deliveryPartner?._id || req.body.id; // Fallback to body for now if middleware varies
         const { fcmToken } = req.body;
 
         if (!id) {
-            return res.status(401).json({ success: false, message: 'Unauthorized: No User ID found' });
+            return res.status(401).json({ success: false, message: 'Unauthorized: No Delivery Partner ID found' });
         }
 
         await updateDeliveryPartnerFcmTokenService(id, fcmToken);
@@ -152,7 +152,7 @@ export const updateFcmToken = async (req, res) => {
 
 export const getAssignedOrders = async (req, res) => {
     try {
-        const partnerId = req.user?.id;
+        const partnerId = req.deliveryPartner?._id;
         const orders = await getAssignedOrdersService(partnerId);
         res.status(200).json({
             success: true,
@@ -166,7 +166,7 @@ export const getAssignedOrders = async (req, res) => {
 
 export const getDashboardStats = async (req, res) => {
     try {
-        const partnerId = req.user?.id;
+        const partnerId = req.deliveryPartner?._id;
         const stats = await getPartnerStatsService(partnerId);
         res.status(200).json({
             success: true,

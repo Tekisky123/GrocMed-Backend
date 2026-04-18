@@ -4,13 +4,13 @@ import {
     getCart,
     removeFromCart,
 } from '../controller/cartController.js';
-import { authenticateToken } from '../middleware/authMiddleware.js';
+import { authenticateToken, isCustomer } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
 // All cart routes require customer authentication
-router.post('/add', authenticateToken, addToCart);
-router.get('/', authenticateToken, getCart);
-router.delete('/remove/:productId', authenticateToken, removeFromCart);
+router.post('/add', authenticateToken, isCustomer, addToCart);
+router.get('/', authenticateToken, isCustomer, getCart);
+router.delete('/remove/:productId', authenticateToken, isCustomer, removeFromCart);
 
 export default router;

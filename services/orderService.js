@@ -1,6 +1,7 @@
 import Order from '../model/orderModel.js';
 import Cart from '../model/cartModel.js';
 import Product from '../model/productModel.js';
+import Setting from '../model/settingModel.js';
 import { sendPushNotification } from '../utils/notificationService.js';
 import { sysLog } from '../utils/logger.js';
 
@@ -12,6 +13,13 @@ export const createOrderService = async (customerId, orderData) => {
 
     if (!cart || cart.items.length === 0) {
         throw new Error('Cart is empty');
+    }
+
+    const subtotal = cart.totalAmount || 0;
+    const settings = await Setting.findOne({ singletonKey: 'config' }) || { minOrderValue: 1000, freeDeliveryThreshold: 1500, deliveryCharge: 30 };
+
+    if (subtotal < settings.minOrderValue) {
+        throw new Error(`Minimum order value is Rs. ${settings.minOrderValue}`);
     }
 
     // Setup business home state
@@ -85,14 +93,16 @@ export const createOrderService = async (customerId, orderData) => {
         };
     });
 
-    const totalAmount = cart.totalAmount;
+    const deliveryCharge = subtotal > settings.freeDeliveryThreshold ? 0 : settings.deliveryCharge;
+    const finalTotalAmount = subtotal + deliveryCharge;
 
     const order = new Order({
         customer: customerId,
         items: orderItems,
         shippingAddress,
         paymentMethod,
-        totalAmount,
+        totalAmount: finalTotalAmount,
+        deliveryCharge,
         taxAmount: parseFloat(totalTaxAmount.toFixed(2)),
         cgstAmount: parseFloat(totalCgst.toFixed(2)),
         sgstAmount: parseFloat(totalSgst.toFixed(2)),
@@ -160,7 +170,7 @@ export const getOrderByIdForAdminService = async (orderId) => {
     return order;
 };
 
-export const updateOrderStatusService = async (orderId, status, deliveryPartnerId = null) => {
+export const updateOrderStatusService = async (orderId, status, deliveryPartnerId = null, codMethod = null) => {
     const validStatuses = ['Placed', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered', 'Cancelled', 'Returned'];
     if (!validStatuses.includes(status)) {
         throw new Error('Invalid order status');
@@ -202,10 +212,17 @@ export const updateOrderStatusService = async (orderId, status, deliveryPartnerI
         sysLog('INVENTORY', `Stock reversed back into shelf for Order [${orderId}]. Status: ${status}`);
     }
 
-    // Payment-Order Synchronization
-    if (isReversingStock && order.paymentMethod === 'Online' && order.paymentStatus === 'Paid') {
-        order.refundStatus = 'Pending';
-        sysLog('FINANCE', `Payment internally reversed to Pending Refund structurally for Order [${orderId}].`);
+    // COD Collection Logic
+    if (status === 'Delivered' && order.paymentMethod === 'COD') {
+        if (!codMethod) {
+            throw new Error('Payment collection method (Cash/Online) is required for COD orders mark as Delivered.');
+        }
+        order.codCollectionDetails = {
+            method: codMethod,
+            collectedAt: new Date()
+        };
+        order.paymentStatus = 'Paid';
+        sysLog('FINANCE', `COD Payment collected via ${codMethod} for Order [${orderId}]. Status set to Paid.`);
     }
 
     await order.save();

@@ -32,10 +32,11 @@ export const generateGSTR1Json = async (req, res, next) => {
         // Mock payload structure required by Govt Offline Tool
         const jsonPayload = {
             "version": "MERGE1.0.0",
-            "fp": period,
+            "fp": period?.replace('-', '') || "042026",
             "b2b": [],
             "b2cs": [],
-            // Other GSTR-1 nodes (hsn, nil, doc_issue)
+            "hsn": { "data": [] },
+            "doc_issue": { "doc_det": [] }
         };
 
         res.status(200).json({
@@ -52,14 +53,18 @@ export const generateGSTR1Json = async (req, res, next) => {
 // @access  Private/Admin
 export const markAsFiled = async (req, res, next) => {
     try {
-        const { returnType, period, arnNumber, jsonData } = req.body;
+        const { returnType, formType, period, arnNumber, arn, totalLiability, jsonData } = req.body;
+
+        const rType = returnType || formType;
+        const rArn = arnNumber || arn;
 
         const gstReturn = await GSTReturn.findOneAndUpdate(
-            { returnType, period },
+            { returnType: rType, period },
             {
                 status: 'Filed',
-                arnNumber,
-                jsonData,
+                arnNumber: rArn,
+                totalLiability: totalLiability || 0,
+                jsonData: jsonData || { manual: true },
                 filedDate: new Date()
             },
             { new: true, upsert: true, runValidators: true }
@@ -67,7 +72,7 @@ export const markAsFiled = async (req, res, next) => {
 
         res.status(200).json({
             success: true,
-            message: `${returnType} marked as filed successfully with ARN ${arnNumber}`,
+            message: `${rType} marked as filed successfully with ARN ${rArn}`,
             data: gstReturn,
         });
     } catch (error) {

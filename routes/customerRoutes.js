@@ -1,4 +1,4 @@
-import express from 'express';
+ import express from 'express';
 import {
     registerCustomer,
     loginCustomer,
@@ -10,7 +10,7 @@ import {
     updateFcmToken,
     searchCustomers,
 } from '../controller/customerController.js';
-import { authenticateToken } from '../middleware/authMiddleware.js';
+import { authenticateToken, isCustomer, isAdmin } from '../middleware/authMiddleware.js';
 import {
     validateRegisterCustomer,
     validateLoginCustomer,
@@ -25,15 +25,14 @@ router.post('/login', validateLoginCustomer, loginCustomer);
 
 // Protected Customer Routes
 router.post('/logout', authenticateToken, logoutCustomer);
-router.get('/profile', authenticateToken, getCustomerProfile);
-router.put('/profile', authenticateToken, validateUpdateCustomer, updateCustomerProfile);
-router.post('/update-fcm-token', authenticateToken, updateFcmToken);
+router.get('/profile', authenticateToken, isCustomer, getCustomerProfile);
+router.put('/profile', authenticateToken, isCustomer, validateUpdateCustomer, updateCustomerProfile);
+router.post('/update-fcm-token', authenticateToken, isCustomer, updateFcmToken);
 
 // Admin Routes for Customer Management
-// Admin Routes for Customer Management
-router.get('/getAllCustomers', authenticateToken, getAllCustomers);
-router.get('/search', authenticateToken, searchCustomers);
-router.get('/getCustomerById/:id', authenticateToken, getCustomerProfile);
-router.delete('/deleteCustomer/:id', authenticateToken, deleteCustomer);
+router.get('/getAllCustomers', authenticateToken, isAdmin, getAllCustomers);
+router.get('/search', authenticateToken, isAdmin, searchCustomers);
+router.get('/getCustomerById/:id', authenticateToken, isAdmin, getCustomerProfile);
+router.delete('/deleteCustomer/:id', authenticateToken, isAdmin, deleteCustomer);
 
 export default router;

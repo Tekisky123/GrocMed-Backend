@@ -43,6 +43,9 @@ const employeeSchema = new mongoose.Schema({
         pf: { type: Number, default: 0, min: 0 },
         esic: { type: Number, default: 0, min: 0 },
     },
+    bankName: { type: String, trim: true },
+    accountNumber: { type: String, trim: true },
+    ifsc: { type: String, trim: true },
     status: {
         type: String,
         enum: ['Active', 'Inactive', 'Terminated'],

@@ -26,6 +26,11 @@ const stockAdjustmentSchema = new mongoose.Schema(
             required: [true, 'Reason for adjustment is required'],
             trim: true,
         },
+        optionId: {
+            // Optional: Stores the _id of the specific packagingOption adjusted
+            type: String,
+            required: false,
+        },
         journalEntryId: {
             // Only populated if adjustment causes financial impact (like shrinkage expense)
             type: mongoose.Schema.Types.ObjectId,

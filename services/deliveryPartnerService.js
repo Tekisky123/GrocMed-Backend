@@ -156,7 +156,6 @@ export const getPartnerStatsService = async (partnerId) => {
     return {
         totalDeliveries,
         pendingDeliveries,
-        totalEarnings,
         recentActivities: recentOrders.map(o => ({
             id: o._id,
             status: o.orderStatus,

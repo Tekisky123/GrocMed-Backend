@@ -36,7 +36,7 @@ export const getOrderById = async (req, res, next) => {
 export const updateOrderStatus = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { status, deliveryPartnerId } = req.body;
+        const { status, deliveryPartnerId, codMethod } = req.body;
 
         if (!status) {
             return res.status(400).json({
@@ -45,7 +45,16 @@ export const updateOrderStatus = async (req, res, next) => {
             });
         }
 
-        const order = await updateOrderStatusService(id, status, deliveryPartnerId);
+        // Role-based Security Check: If partner is updating, ensure they own the order
+        const orderCheck = await getOrderByIdForAdminService(id);
+        if (req.deliveryPartner && orderCheck.deliveryPartner?._id.toString() !== req.deliveryPartner._id.toString()) {
+            return res.status(403).json({
+                success: false,
+                message: 'Unauthorized: You can only update orders assigned to you.',
+            });
+        }
+
+        const order = await updateOrderStatusService(id, status, deliveryPartnerId, codMethod);
 
         res.status(200).json({
             success: true,

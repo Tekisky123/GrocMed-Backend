@@ -10,7 +10,7 @@ import mongoose from 'mongoose';
 export const getAdjustments = async (req, res, next) => {
     try {
         const adjustments = await StockAdjustment.find()
-            .populate('productId', 'name sku currentPrice')
+            .populate('productId', 'name sku packagingOptions')
             .sort('-date -createdAt');
 
         res.status(200).json({
@@ -31,7 +31,7 @@ export const createAdjustment = async (req, res, next) => {
     session.startTransaction();
 
     try {
-        let { productId, date, movementType, quantity, reason } = req.body;
+        let { productId, optionId, date, movementType, quantity, reason } = req.body;
 
         const product = await Product.findById(productId).session(session);
         if (!product) {
@@ -39,7 +39,6 @@ export const createAdjustment = async (req, res, next) => {
         }
 
         // Auto-correct quantity sign based on movement type
-        // The model pre-save hook also handles this, but we do it here to know the exact delta for stock update
         if ((movementType === 'Outward' || movementType === 'Shrinkage/Damaged') && quantity > 0) {
             quantity = -Math.abs(quantity);
         }
@@ -47,19 +46,35 @@ export const createAdjustment = async (req, res, next) => {
         // 1. Create Adjustment Record
         const adjustment = await StockAdjustment.create([{
             productId,
+            optionId,
             date,
             movementType,
             quantity,
             reason
         }], { session });
 
-        // 2. Update Physical Product Stock
-        product.stock += quantity;
+        // 2. Update Stock
+        let unitValue = product.mrp || 0; // Fallback value
+
+        if (optionId) {
+            // Update specific packaging option stock
+            const optionIndex = product.packagingOptions.findIndex(opt => opt._id.toString() === optionId || opt.id === optionId);
+            if (optionIndex === -1) {
+                return res.status(400).json({ success: false, message: 'Specific Buying Type not found on product' });
+            }
+            product.packagingOptions[optionIndex].stock = (product.packagingOptions[optionIndex].stock || 0) + quantity;
+            unitValue = product.packagingOptions[optionIndex].salePrice || product.packagingOptions[optionIndex].mrp;
+        } else {
+            // Update global product stock
+            product.stock += quantity;
+            unitValue = product.offerPrice || product.mrp;
+        }
+
         await product.save({ session });
 
         // 3. Post Financial Journal if it's a financial loss (Shrinkage)
         if (movementType === 'Shrinkage/Damaged') {
-            const lossValue = Math.abs(quantity) * product.currentPrice; // Simplified valuation using current retail price (should typically be cost price)
+            const lossValue = Math.abs(quantity) * (unitValue || 0);
 
             const inventoryLedger = await AccountLedger.findOne({ name: 'Inventory Asset' }).session(session);
             const lossLedger = await AccountLedger.findOne({ name: 'Inventory Loss/Shrinkage' }).session(session);

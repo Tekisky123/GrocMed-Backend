@@ -76,3 +76,49 @@ export const authenticateToken = async (req, res, next) => {
   }
 };
 
+// Authorization middleware for specific roles
+export const authorizeRoles = (...roles) => {
+  return (req, res, next) => {
+    const userRole = req.customer ? 'customer' : req.admin ? 'admin' : req.deliveryPartner ? 'delivery_partner' : null;
+    
+    if (!userRole || !roles.includes(userRole)) {
+      return res.status(403).json({
+        success: false,
+        message: `Role (${userRole}) is not authorized to access this resource`,
+      });
+    }
+    next();
+  };
+};
+
+// Shorthand helpers
+export const isCustomer = (req, res, next) => {
+  if (!req.customer) {
+    return res.status(403).json({
+      success: false,
+      message: 'Access denied. Customer only resource.',
+    });
+  }
+  next();
+};
+
+export const isAdmin = (req, res, next) => {
+  if (!req.admin) {
+    return res.status(403).json({
+      success: false,
+      message: 'Access denied. Admin only resource.',
+    });
+  }
+  next();
+};
+
+export const isDeliveryPartner = (req, res, next) => {
+  if (!req.deliveryPartner) {
+    return res.status(403).json({
+      success: false,
+      message: 'Access denied. Delivery Partner only resource.',
+    });
+  }
+  next();
+};
+

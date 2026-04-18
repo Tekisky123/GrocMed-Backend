@@ -29,23 +29,40 @@ export const processPayroll = async (req, res, next) => {
         });
 
         // Generate the Journal Entry
-        const salaryExpenseLedger = await AccountLedger.findOne({ name: 'Salary Expense' }).session(session);
-        const tdsPayableLedger = await AccountLedger.findOne({ name: 'TDS Payable' }).session(session);
-        const pfPayableLedger = await AccountLedger.findOne({ name: 'PF Payable' }).session(session);
-        const esicPayableLedger = await AccountLedger.findOne({ name: 'ESIC Payable' }).session(session);
-        const salaryPayableLedger = await AccountLedger.findOne({ name: 'Salary Payable' }).session(session);
+        // Safety: Look for ledgers. If missing, create them.
+        const requiredLedgers = [
+            { name: 'Salary Expense', group: 'Expense' },
+            { name: 'Salary Payable', group: 'Liability' },
+            { name: 'TDS Payable', group: 'Liability' },
+            { name: 'PF Payable', group: 'Liability' },
+            { name: 'ESIC Payable', group: 'Liability' }
+        ];
+
+        const ledgerMap = {};
+        for (const l of requiredLedgers) {
+            let ledger = await AccountLedger.findOne({ name: l.name }).session(session);
+            if (!ledger) {
+                [ledger] = await AccountLedger.create([{
+                    name: l.name,
+                    group: l.group,
+                    openingBalance: 0,
+                    openingBalanceType: l.group === 'Expense' ? 'Dr' : 'Cr'
+                }], { session });
+            }
+            ledgerMap[l.name] = ledger;
+        }
 
         const journal = await JournalEntry.create([{
             date: new Date(),
-            voucherNo: `PRL/${monthYear.toUpperCase()}`,
+            voucherNo: `PRL/${monthYear.replace('-', '').toUpperCase()}`,
             type: 'Journal',
             narration: `Payroll booked for ${monthYear}`,
             entries: [
-                { ledgerId: salaryExpenseLedger._id, debit: totalGross, credit: 0 },
-                { ledgerId: tdsPayableLedger._id, debit: 0, credit: totalTDS },
-                { ledgerId: pfPayableLedger._id, debit: 0, credit: totalPF },
-                { ledgerId: esicPayableLedger._id, debit: 0, credit: totalESIC },
-                { ledgerId: salaryPayableLedger._id, debit: 0, credit: totalNet },
+                { ledgerId: ledgerMap['Salary Expense']._id, debit: totalGross, credit: 0 },
+                { ledgerId: ledgerMap['TDS Payable']._id, debit: 0, credit: totalTDS },
+                { ledgerId: ledgerMap['PF Payable']._id, debit: 0, credit: totalPF },
+                { ledgerId: ledgerMap['ESIC Payable']._id, debit: 0, credit: totalESIC },
+                { ledgerId: ledgerMap['Salary Payable']._id, debit: 0, credit: totalNet },
             ],
             totalAmount: totalGross
         }], { session });

@@ -47,6 +47,10 @@ const orderSchema = new mongoose.Schema(
             type: Number,
             required: true,
         },
+        deliveryCharge: {
+            type: Number,
+            default: 0,
+        },
         taxAmount: {
             type: Number,
             default: 0,
@@ -81,6 +85,10 @@ const orderSchema = new mongoose.Schema(
                 description: String
             }
         ],
+        codCollectionDetails: {
+            method: { type: String, enum: ['Cash', 'Online', 'None'], default: 'None' },
+            collectedAt: { type: Date }
+        },
     },
     {
         timestamps: true,

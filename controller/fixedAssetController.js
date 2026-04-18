@@ -8,11 +8,11 @@ import mongoose from 'mongoose';
 // @access  Private/Admin
 export const getAssets = async (req, res, next) => {
     try {
-        const assets = await FixedAsset.find().sort('-purchaseDate');
+        const assets = (await FixedAsset.find().sort('-purchaseDate')) || [];
 
         // Automatic Math Aggregation for UI 
-        const totalValue = assets.reduce((a, as) => a + as.purchaseValue, 0);
-        const netValue = assets.reduce((a, as) => a + as.netBookValue, 0);
+        const totalValue = assets.reduce((a, as) => a + (as?.purchaseValue || 0), 0);
+        const netValue = assets.reduce((a, as) => a + (as?.netBookValue || 0), 0);
 
         res.status(200).json({
             success: true,
@@ -72,8 +72,27 @@ export const runDepreciation = async (req, res, next) => {
 
         // 2. Pass Journal Entry for total Depreciation
         if (totalDepreciationThisYear > 0) {
-            const depExpenseLeadger = await AccountLedger.findOne({ name: 'Depreciation Expense' }).session(session);
-            const accumDepLedger = await AccountLedger.findOne({ name: 'Accumulated Depreciation' }).session(session);
+            let depExpenseLedger = await AccountLedger.findOne({ name: 'Depreciation Expense' }).session(session);
+            let accumDepLedger = await AccountLedger.findOne({ name: 'Accumulated Depreciation' }).session(session);
+
+            if (!depExpenseLedger) {
+                [depExpenseLedger] = await AccountLedger.create([{
+                    name: 'Depreciation Expense',
+                    group: 'Expense',
+                    openingBalance: 0,
+                    openingBalanceType: 'Dr'
+                }], { session });
+            }
+
+            if (!accumDepLedger) {
+                [accumDepLedger] = await AccountLedger.create([{
+                    name: 'Accumulated Depreciation',
+                    group: 'Asset',
+                    subGroup: 'Contra-Asset',
+                    openingBalance: 0,
+                    openingBalanceType: 'Cr'
+                }], { session });
+            }
 
             await JournalEntry.create([{
                 date: new Date(),
@@ -81,7 +100,7 @@ export const runDepreciation = async (req, res, next) => {
                 type: 'Journal',
                 narration: 'Annual Depreciation Charge',
                 entries: [
-                    { ledgerId: depExpenseLeadger._id, debit: totalDepreciationThisYear, credit: 0 },
+                    { ledgerId: depExpenseLedger._id, debit: totalDepreciationThisYear, credit: 0 },
                     { ledgerId: accumDepLedger._id, debit: 0, credit: totalDepreciationThisYear }
                 ],
                 totalAmount: totalDepreciationThisYear
