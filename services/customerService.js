@@ -2,6 +2,7 @@ import Order from '../model/orderModel.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import Customer from '../model/customerModel.js';
+import AdminNotification from '../model/adminNotificationModel.js';
 
 export const registerCustomerService = async (customerData) => {
     const { name, phone, email, password, pan, adhaar } = customerData;
@@ -155,5 +156,29 @@ export const getCustomerWithOrdersService = async (customerId) => {
         orders,
         orderCount: orders.length,
         totalSpent: orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0)
+    };
+};
+
+export const getCustomerNotificationsService = async (page = 1, limit = 20) => {
+    const skip = (page - 1) * limit;
+
+    const notifications = await AdminNotification.find({
+        targetAudience: { $in: ['all', 'customers'] },
+        status: 'sent'
+    })
+    .sort({ sentAt: -1 })
+    .skip(skip)
+    .limit(limit);
+
+    const total = await AdminNotification.countDocuments({
+        targetAudience: { $in: ['all', 'customers'] },
+        status: 'sent'
+    });
+
+    return {
+        notifications,
+        total,
+        page,
+        totalPages: Math.ceil(total / limit)
     };
 };

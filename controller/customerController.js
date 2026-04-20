@@ -8,6 +8,7 @@ import {
     updateCustomerFcmTokenService,
     searchCustomersService,
     getCustomerWithOrdersService,
+    getCustomerNotificationsService,
 } from '../services/customerService.js';
 
 export const registerCustomer = async (req, res) => {
@@ -164,6 +165,22 @@ export const searchCustomers = async (req, res) => {
             success: true,
             count: customers.length,
             data: customers
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+export const getCustomerNotifications = async (req, res) => {
+    try {
+        const { page, limit } = req.query;
+        const data = await getCustomerNotificationsService(parseInt(page), parseInt(limit));
+        res.status(200).json({
+            success: true,
+            ...data
         });
     } catch (error) {
         res.status(500).json({
