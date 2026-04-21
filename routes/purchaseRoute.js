@@ -1,3 +1,4 @@
+import express from 'express';
 import {  getPurchases, createPurchase, updatePurchaseStatus  } from '../controller/purchaseController.js';
 
 const router = express.Router();
