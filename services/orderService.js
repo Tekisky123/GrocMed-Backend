@@ -16,11 +16,11 @@ export const createOrderService = async (customerId, orderData) => {
     }
 
     const subtotal = cart.totalAmount || 0;
-    const settings = await Setting.findOne({ singletonKey: 'config' }) || { minOrderValue: 1000, freeDeliveryThreshold: 1500, deliveryCharge: 30 };
-
-    if (subtotal < settings.minOrderValue) {
-        throw new Error(`Minimum order value is Rs. ${settings.minOrderValue}`);
-    }
+    const settings = await Setting.findOne({ singletonKey: 'config' }) || { 
+        minOrderValue: 0, 
+        freeDeliveryThreshold: 1000, 
+        deliveryCharge: 50 
+    };
 
     // Setup business home state
     const BUSINESS_HOME_STATE = process.env.STORE_STATE || 'TS';
@@ -93,7 +93,7 @@ export const createOrderService = async (customerId, orderData) => {
         };
     });
 
-    const deliveryCharge = subtotal > settings.freeDeliveryThreshold ? 0 : settings.deliveryCharge;
+    const deliveryCharge = subtotal >= settings.freeDeliveryThreshold ? 0 : settings.deliveryCharge;
     const finalTotalAmount = subtotal + deliveryCharge;
 
     const order = new Order({
