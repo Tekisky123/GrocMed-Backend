@@ -31,28 +31,51 @@ export const createPurchase = async (req, res, next) => {
     session.startTransaction();
 
     try {
-        const { invoiceNo, date, supplierName, gstin, items, taxBreakup, taxableTotal, totalAmount, status } = req.body;
+        const { invoiceNo, date, supplierName, gstin, items, status } = req.body;
 
-        // 1. Create Purchase Invoice
+        // Calculate totals from items correctly
+        const taxableTotal = items.reduce((sum, item) => sum + (Number(item.taxableAmount) || 0), 0);
+        const totalAmount = items.reduce((sum, item) => sum + (Number(item.total) || 0), 0);
+        
+        // Calculate tax breakup from items
+        const taxBreakup = { cgst: 0, sgst: 0, igst: 0 };
+        items.forEach(item => {
+            const tax = (Number(item.total) || 0) - (Number(item.taxableAmount) || 0);
+            // Default to CGST/SGST split if not specified (standard for local purchases)
+            taxBreakup.cgst += tax / 2;
+            taxBreakup.sgst += tax / 2;
+        });
+
+        // 1. Create Purchase Invoice with all fields
         const invoice = await PurchaseInvoice.create([{
             invoiceNo,
             date,
             supplierName,
-            gstin,
+            gstin: gstin || 'URD',
             items,
             taxBreakup,
             taxableTotal,
             totalAmount,
-            status
+            status: status || 'Unpaid'
         }], { session });
 
         // 2. Automatically Update Inventory Stock for each item
         for (const item of items) {
-            await Product.findByIdAndUpdate(
-                item.productId,
-                { $inc: { stock: item.quantity } },
-                { session }
-            );
+            if (item.productId) {
+                await Product.findByIdAndUpdate(
+                    item.productId,
+                    { 
+                        $inc: { stock: item.quantity },
+                        $set: { 
+                            hsnCode: item.hsn, 
+                            mrp: item.mrp,
+                            manfDate: item.mfgDate,
+                            expiryDate: item.expiryDate
+                        }
+                    },
+                    { session }
+                );
+            }
         }
 
         // 3. Automatically Create Journal Entry
@@ -121,6 +144,42 @@ export const createPurchase = async (req, res, next) => {
     } catch (error) {
         await session.abortTransaction();
         session.endSession();
+        next(error);
+    }
+};
+
+// @desc    Update purchase status
+// @route   PATCH /api/admin/purchases/:id/status
+// @access  Private/Admin
+export const updatePurchaseStatus = async (req, res, next) => {
+    try {
+        const { status } = req.body;
+        
+        if (!['Unpaid', 'Partially Paid', 'Paid'].includes(status)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid status. Must be Unpaid, Partially Paid, or Paid'
+            });
+        }
+
+        const invoice = await PurchaseInvoice.findByIdAndUpdate(
+            req.params.id,
+            { status },
+            { new: true, runValidators: true }
+        );
+
+        if (!invoice) {
+            return res.status(404).json({
+                success: false,
+                message: 'Purchase invoice not found'
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            data: invoice,
+        });
+    } catch (error) {
         next(error);
     }
 };

@@ -29,21 +29,62 @@ const purchaseInvoiceSchema = new mongoose.Schema(
                     ref: 'Product',
                     required: true,
                 },
+                productName: {
+                    type: String,
+                    required: true,
+                },
+                invoiceNo: {
+                    type: String, // Row level invoice no
+                    required: false,
+                },
+                date: {
+                    type: Date, // Row level date
+                    required: false,
+                },
+                sku: {
+                    type: String,
+                    enum: ['PACK', 'CARTON', 'LOOSE'],
+                    default: 'PACK',
+                },
                 quantity: {
                     type: Number,
                     required: true,
                     min: 1,
+                },
+                mrp: {
+                    type: Number,
+                    required: true,
+                    default: 0,
                 },
                 rate: {
                     type: Number,
                     required: true,
                     min: 0,
                 },
+                hsn: {
+                    type: String,
+                    trim: true,
+                },
+                gstRate: {
+                    type: Number,
+                    default: 0,
+                },
+                mfgDate: {
+                    type: Date,
+                },
+                expiryDate: {
+                    type: Date,
+                },
                 taxableAmount: {
                     type: Number,
                     required: true,
                     min: 0,
                 },
+                total: {
+                    type: Number,
+                    required: true,
+                    default: 0,
+                }
             },
         ],
         taxBreakup: {

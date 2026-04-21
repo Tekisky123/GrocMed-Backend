@@ -141,3 +141,4 @@
 [2026-04-16T12:17:22.470Z] [API-TRAFFIC] POST /api/admin/gst/mark-filed | Status: 200 | IP: ::1
 [2026-04-18T07:53:29.251Z] [API-TRAFFIC] GET /api/admin/finance/ledgers | Status: 500 | IP: ::1
 [2026-04-18T07:53:29.256Z] [API-TRAFFIC] GET /api/admin/finance/journal?page=1&limit=100 | Status: 500 | IP: ::1
+[2026-04-21T20:57:17.345Z] [API-TRAFFIC] POST /api/admin/purchases | Status: 201 | IP: ::1
