@@ -10,7 +10,7 @@ import mongoose from 'mongoose';
 export const getPurchases = async (req, res, next) => {
     try {
         const invoices = await PurchaseInvoice.find()
-            .populate('items.productId', 'name sku')
+            .populate('items.productId', 'name hsnCode')
             .sort('-date -createdAt');
 
         res.status(200).json({
@@ -62,19 +62,39 @@ export const createPurchase = async (req, res, next) => {
         // 2. Automatically Update Inventory Stock for each item
         for (const item of items) {
             if (item.productId) {
-                await Product.findByIdAndUpdate(
-                    item.productId,
-                    { 
-                        $inc: { stock: item.quantity },
-                        $set: { 
-                            hsnCode: item.hsn, 
-                            mrp: item.mrp,
-                            manfDate: item.mfgDate,
-                            expiryDate: item.expiryDate
+                const product = await Product.findById(item.productId).session(session);
+                if (product) {
+                    let updated = false;
+                    
+                    // Try to find a matching packaging option by SKU label
+                    if (product.packagingOptions && product.packagingOptions.length > 0) {
+                        const optionIndex = product.packagingOptions.findIndex(opt => 
+                            opt.label.toLowerCase().includes(item.sku.toLowerCase()) || 
+                            item.sku.toLowerCase().includes(opt.label.toLowerCase())
+                        );
+                        
+                        if (optionIndex !== -1) {
+                            console.log(`[INVENTORY] Matching option found: ${product.packagingOptions[optionIndex].label} for SKU: ${item.sku}`);
+                            product.packagingOptions[optionIndex].stock = (product.packagingOptions[optionIndex].stock || 0) + Number(item.quantity);
+                            updated = true;
+                        } else {
+                            console.log(`[INVENTORY] No specific option matching SKU: ${item.sku} for product: ${product.name}. Updating global stock.`);
                         }
-                    },
-                    { session }
-                );
+                    }
+                    
+                    // Always update global stock as fallback or for overall tracking
+                    if (!updated) {
+                        product.stock = (product.stock || 0) + Number(item.quantity);
+                    }
+
+                    // Update common fields
+                    product.hsnCode = item.hsn || product.hsnCode;
+                    product.mrp = item.mrp || product.mrp;
+                    if (item.mfgDate) product.manfDate = item.mfgDate;
+                    if (item.expiryDate) product.expiryDate = item.expiryDate;
+
+                    await product.save({ session });
+                }
             }
         }
 

@@ -43,8 +43,8 @@ const purchaseInvoiceSchema = new mongoose.Schema(
                 },
                 sku: {
                     type: String,
-                    enum: ['PACK', 'CARTON', 'LOOSE'],
-                    default: 'PACK',
+                    enum: ['Carton', 'Pack', 'Single', 'Bag', 'Kilograms'],
+                    default: 'Pack',
                 },
                 quantity: {
                     type: Number,
