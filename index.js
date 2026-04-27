@@ -35,7 +35,7 @@ const app = express();
 
 // CORS Middleware
 app.use(cors({
-  origin: ['https://grocmed.com', "https://www.grocmed.com", "*"],
+  origin: ['https://grocmed.com', "https://www.grocmed.com", "https://groc-med-frontend-admin.vercel.app"],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
