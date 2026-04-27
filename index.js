@@ -34,8 +34,25 @@ dotenv.config();
 const app = express();
 
 // CORS Middleware
+const allowedOrigins = [
+  'https://grocmed.com', 
+  "https://www.grocmed.com", 
+  "https://groc-med-frontend-admin.vercel.app",
+  'http://localhost:8081',   // Expo Web development
+  'http://localhost:19006'   // Older Expo Web development
+];
+
 app.use(cors({
-  origin: ['https://grocmed.com', "https://www.grocmed.com", "https://groc-med-frontend-admin.vercel.app"],
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like native mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
