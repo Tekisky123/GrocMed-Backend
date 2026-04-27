@@ -181,3 +181,4 @@
 [2026-04-21T22:41:20.396Z] [API-TRAFFIC] POST /api/order/placeOrder | Status: 201 | IP: ::1
 [2026-04-21T22:41:20.588Z] [API-TRAFFIC] POST /api/cart/add | Status: 200 | IP: ::1
 [2026-04-21T22:41:20.871Z] [API-TRAFFIC] POST /api/order/placeOrder | Status: 201 | IP: ::1
+[2026-04-27T12:29:18.300Z] [API-TRAFFIC] POST /api/admin/loginAdmin | Status: 200 | IP: ::1
