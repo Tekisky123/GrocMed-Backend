@@ -39,6 +39,7 @@ const allowedOrigins = [
   "https://www.grocmed.com", 
   "https://groc-med-frontend-admin.vercel.app",
   'http://localhost:8081',   // Expo Web development
+  'http://localhost:5173',   // React Frontend
   'http://localhost:19006'   // Older Expo Web development
 ];
 
