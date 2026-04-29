@@ -69,6 +69,7 @@ export const createPurchase = async (req, res, next) => {
                     // Try to find a matching packaging option by SKU label
                     if (product.packagingOptions && product.packagingOptions.length > 0) {
                         const optionIndex = product.packagingOptions.findIndex(opt => 
+                            opt.label === item.sku ||
                             opt.label.toLowerCase().includes(item.sku.toLowerCase()) || 
                             item.sku.toLowerCase().includes(opt.label.toLowerCase())
                         );
@@ -76,6 +77,7 @@ export const createPurchase = async (req, res, next) => {
                         if (optionIndex !== -1) {
                             console.log(`[INVENTORY] Matching option found: ${product.packagingOptions[optionIndex].label} for SKU: ${item.sku}`);
                             product.packagingOptions[optionIndex].stock = (product.packagingOptions[optionIndex].stock || 0) + Number(item.quantity);
+                            product.markModified('packagingOptions');
                             updated = true;
                         } else {
                             console.log(`[INVENTORY] No specific option matching SKU: ${item.sku} for product: ${product.name}. Updating global stock.`);
