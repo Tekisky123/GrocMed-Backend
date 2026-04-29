@@ -35,8 +35,8 @@ const app = express();
 
 // CORS Middleware
 const allowedOrigins = [
-  'https://grocmed.com', 
-  "https://www.grocmed.com", 
+  'https://grocmed.com',
+  "https://www.grocmed.com",
   "https://groc-med-frontend-admin.vercel.app",
   'http://localhost:8081',   // Expo Web development
   'http://localhost:5173',   // React Frontend
@@ -47,7 +47,7 @@ app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (like native mobile apps, curl, etc.)
     if (!origin) return callback(null, true);
-    
+
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {

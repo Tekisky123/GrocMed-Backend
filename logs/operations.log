@@ -184,3 +184,6 @@
 [2026-04-27T12:29:18.300Z] [API-TRAFFIC] POST /api/admin/loginAdmin | Status: 200 | IP: ::1
 [2026-04-29T06:39:14.121Z] [API-TRAFFIC] GET / | Status: 404 | IP: ::1
 [2026-04-29T06:39:14.160Z] [API-TRAFFIC] GET /favicon.ico | Status: 404 | IP: ::1
+[2026-04-29T07:48:08.839Z] [API-TRAFFIC] GET /api/admin/deliveryPartner/getAllDeliveryPartners | Status: 401 | IP: ::1
+[2026-04-29T07:48:08.838Z] [API-TRAFFIC] GET /api/admin/order/getAllOrders | Status: 401 | IP: ::1
+[2026-04-29T07:48:15.516Z] [API-TRAFFIC] POST /api/admin/loginAdmin | Status: 200 | IP: ::1
