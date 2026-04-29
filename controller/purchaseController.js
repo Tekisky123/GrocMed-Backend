@@ -205,3 +205,211 @@ export const updatePurchaseStatus = async (req, res, next) => {
         next(error);
     }
 };
+
+// @desc    Delete a purchase invoice
+// @route   DELETE /api/admin/purchases/:id
+// @access  Private/Admin
+export const deletePurchase = async (req, res, next) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+        const invoice = await PurchaseInvoice.findById(req.params.id).session(session);
+        if (!invoice) {
+            const error = new Error('Purchase invoice not found');
+            error.statusCode = 404;
+            throw error;
+        }
+
+        // 1. Revert stock
+        for (const item of invoice.items) {
+            if (item.productId) {
+                const product = await Product.findById(item.productId).session(session);
+                if (product) {
+                    let updated = false;
+                    if (product.packagingOptions && product.packagingOptions.length > 0) {
+                        const optionIndex = product.packagingOptions.findIndex(opt => 
+                            opt.label === item.sku ||
+                            opt.label.toLowerCase().includes(item.sku.toLowerCase()) || 
+                            item.sku.toLowerCase().includes(opt.label.toLowerCase())
+                        );
+                        if (optionIndex !== -1) {
+                            product.packagingOptions[optionIndex].stock -= Number(item.quantity);
+                            product.markModified('packagingOptions');
+                            updated = true;
+                        }
+                    }
+                    if (!updated) {
+                        product.stock -= Number(item.quantity);
+                    }
+                    await product.save({ session });
+                }
+            }
+        }
+
+        // 2. Delete Journal Entry
+        if (invoice.journalEntryId) {
+            await JournalEntry.findByIdAndDelete(invoice.journalEntryId, { session });
+        } else {
+            await JournalEntry.findOneAndDelete({ voucherNo: `PUR/${invoice.invoiceNo}` }, { session });
+        }
+
+        // 3. Delete Purchase Invoice
+        await PurchaseInvoice.findByIdAndDelete(req.params.id, { session });
+
+        await session.commitTransaction();
+        session.endSession();
+
+        res.status(200).json({ success: true, message: 'Purchase deleted and stock reverted' });
+    } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+        next(error);
+    }
+};
+
+// @desc    Update a purchase invoice
+// @route   PUT /api/admin/purchases/:id
+// @access  Private/Admin
+export const updatePurchase = async (req, res, next) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+        const { invoiceNo, date, supplierName, gstin, items, status } = req.body;
+        
+        const invoice = await PurchaseInvoice.findById(req.params.id).session(session);
+        if (!invoice) {
+            const error = new Error('Purchase invoice not found');
+            error.statusCode = 404;
+            throw error;
+        }
+
+        // 1. Revert Old Stock
+        for (const item of invoice.items) {
+            if (item.productId) {
+                const product = await Product.findById(item.productId).session(session);
+                if (product) {
+                    let updated = false;
+                    if (product.packagingOptions && product.packagingOptions.length > 0) {
+                        const optionIndex = product.packagingOptions.findIndex(opt => 
+                            opt.label === item.sku || opt.label.toLowerCase().includes(item.sku.toLowerCase()) || item.sku.toLowerCase().includes(opt.label.toLowerCase())
+                        );
+                        if (optionIndex !== -1) {
+                            product.packagingOptions[optionIndex].stock -= Number(item.quantity);
+                            product.markModified('packagingOptions');
+                            updated = true;
+                        }
+                    }
+                    if (!updated) product.stock -= Number(item.quantity);
+                    await product.save({ session });
+                }
+            }
+        }
+
+        // 2. Apply New Stock
+        for (const item of items) {
+            if (item.productId) {
+                const product = await Product.findById(item.productId).session(session);
+                if (product) {
+                    let updated = false;
+                    if (product.packagingOptions && product.packagingOptions.length > 0) {
+                        const optionIndex = product.packagingOptions.findIndex(opt => 
+                            opt.label === item.sku || opt.label.toLowerCase().includes(item.sku.toLowerCase()) || item.sku.toLowerCase().includes(opt.label.toLowerCase())
+                        );
+                        if (optionIndex !== -1) {
+                            product.packagingOptions[optionIndex].stock = (product.packagingOptions[optionIndex].stock || 0) + Number(item.quantity);
+                            product.markModified('packagingOptions');
+                            updated = true;
+                        }
+                    }
+                    if (!updated) product.stock = (product.stock || 0) + Number(item.quantity);
+                    
+                    product.hsnCode = item.hsn || product.hsnCode;
+                    product.mrp = item.mrp || product.mrp;
+                    if (item.mfgDate) product.manfDate = item.mfgDate;
+                    if (item.expiryDate) product.expiryDate = item.expiryDate;
+                    await product.save({ session });
+                }
+            }
+        }
+
+        // 3. Update Invoice Fields
+        const taxableTotal = items.reduce((sum, item) => sum + (Number(item.taxableAmount) || 0), 0);
+        const totalAmount = items.reduce((sum, item) => sum + (Number(item.total) || 0), 0);
+        const taxBreakup = { cgst: 0, sgst: 0, igst: 0 };
+        items.forEach(item => {
+            const tax = (Number(item.total) || 0) - (Number(item.taxableAmount) || 0);
+            taxBreakup.cgst += tax / 2;
+            taxBreakup.sgst += tax / 2;
+        });
+
+        invoice.invoiceNo = invoiceNo;
+        invoice.date = date;
+        invoice.supplierName = supplierName;
+        invoice.gstin = gstin || 'URD';
+        invoice.items = items;
+        invoice.taxBreakup = taxBreakup;
+        invoice.taxableTotal = taxableTotal;
+        invoice.totalAmount = totalAmount;
+        if (status) invoice.status = status;
+        
+        await invoice.save({ session });
+
+        // 4. Update Journal Entry
+        if (invoice.journalEntryId) {
+            await JournalEntry.findByIdAndDelete(invoice.journalEntryId, { session });
+        } else {
+            await JournalEntry.findOneAndDelete({ voucherNo: `PUR/${invoice.invoiceNo}` }, { session });
+        }
+
+        const findOrCreateLedger = async (name, group, subGroup) => {
+            let ledger = await AccountLedger.findOne({ name }).session(session);
+            if (!ledger) {
+                const created = await AccountLedger.create([{ name, group, subGroup }], { session });
+                ledger = created[0];
+            }
+            return ledger;
+        };
+
+        const purchaseLedger = await findOrCreateLedger('Purchases Account', 'Expense', 'Direct Expenses');
+        const supplierLedger = await findOrCreateLedger(supplierName, 'Liability', 'Sundry Creditors');
+
+        const journalEntries = [
+            { ledgerId: purchaseLedger._id, debit: taxableTotal, credit: 0 },
+            { ledgerId: supplierLedger._id, debit: 0, credit: totalAmount }
+        ];
+
+        if (taxBreakup.cgst > 0) {
+            const cgstLedger = await findOrCreateLedger('Input CGST', 'Asset', 'Duties & Taxes');
+            journalEntries.push({ ledgerId: cgstLedger._id, debit: taxBreakup.cgst, credit: 0 });
+        }
+        if (taxBreakup.sgst > 0) {
+            const sgstLedger = await findOrCreateLedger('Input SGST', 'Asset', 'Duties & Taxes');
+            journalEntries.push({ ledgerId: sgstLedger._id, debit: taxBreakup.sgst, credit: 0 });
+        }
+        if (taxBreakup.igst > 0) {
+            const igstLedger = await findOrCreateLedger('Input IGST', 'Asset', 'Duties & Taxes');
+            journalEntries.push({ ledgerId: igstLedger._id, debit: taxBreakup.igst, credit: 0 });
+        }
+
+        const journal = await JournalEntry.create([{
+            date,
+            voucherNo: `PUR/${invoiceNo}`,
+            type: 'Purchase',
+            narration: `Purchase from ${supplierName} - Inv no. ${invoiceNo}`,
+            entries: journalEntries,
+            totalAmount: totalAmount
+        }], { session });
+
+        invoice.journalEntryId = journal[0]._id;
+        await invoice.save({ session });
+
+        await session.commitTransaction();
+        session.endSession();
+
+        res.status(200).json({ success: true, message: 'Purchase updated successfully', data: invoice });
+    } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+        next(error);
+    }
+};
