@@ -35,31 +35,61 @@ export const createOrderService = async (customerId, orderData) => {
         for (const item of cart.items) {
             if (!item.product) throw new Error('Product in cart not found');
             
-            // Atomic check & deduct natively inside MongoDB bypassing Read/Write race gaps
-            const updatedProduct = await Product.findOneAndUpdate(
-                { _id: item.product._id, stock: { $gte: item.quantity } },
-                { $inc: { stock: -item.quantity } },
-                { new: true }
-            );
+            let updatedProduct;
+            if (item.packagingOptionId) {
+                // Atomic check & deduct from specific packaging option
+                updatedProduct = await Product.findOneAndUpdate(
+                    { 
+                        _id: item.product._id, 
+                        'packagingOptions._id': item.packagingOptionId,
+                        'packagingOptions.stock': { $gte: item.quantity } 
+                    },
+                    { $inc: { 'packagingOptions.$.stock': -item.quantity } },
+                    { new: true }
+                );
+            } else {
+                // Fallback to legacy root stock field
+                updatedProduct = await Product.findOneAndUpdate(
+                    { _id: item.product._id, stock: { $gte: item.quantity } },
+                    { $inc: { stock: -item.quantity } },
+                    { new: true }
+                );
+            }
 
             if (!updatedProduct) {
-                // If update failed, query once to give user a clean error reason
                 const prodCheck = await Product.findById(item.product._id);
-                if (!prodCheck) throw new Error(`Product not found (ID: ${item.product._id})`);
-                throw new Error(`Insufficient stock for ${prodCheck.name}. Available: ${prodCheck.stock}, Requested: ${item.quantity}`);
+                if (!prodCheck) throw new Error(`Product not found`);
+                
+                let availableStock = 0;
+                if (item.packagingOptionId) {
+                    const opt = prodCheck.packagingOptions.id(item.packagingOptionId);
+                    availableStock = opt ? opt.stock : 0;
+                } else {
+                    availableStock = prodCheck.stock || 0;
+                }
+                
+                throw new Error(`Insufficient stock for ${prodCheck.name}${item.packagingLabel ? ' ' + item.packagingLabel : ''}. Available: ${availableStock}, Requested: ${item.quantity}`);
             }
 
             lockedProducts.push({
                 productId: updatedProduct._id,
+                packagingOptionId: item.packagingOptionId,
                 quantity: item.quantity
             });
         }
     } catch (error) {
-        // Rollback any successfully locked stock to preserve integrity before aborting
+        // Rollback any successfully locked stock
         for (const lock of lockedProducts) {
-            await Product.findByIdAndUpdate(lock.productId, { $inc: { stock: lock.quantity } });
+            if (lock.packagingOptionId) {
+                await Product.findOneAndUpdate(
+                    { _id: lock.productId, 'packagingOptions._id': lock.packagingOptionId },
+                    { $inc: { 'packagingOptions.$.stock': lock.quantity } }
+                );
+            } else {
+                await Product.findByIdAndUpdate(lock.productId, { $inc: { stock: lock.quantity } });
+            }
         }
-        throw new Error(error.message); // Stop execution entirely
+        throw new Error(error.message);
     }
 
     let totalTaxAmount = 0;
@@ -96,10 +126,37 @@ export const createOrderService = async (customerId, orderData) => {
     const deliveryCharge = subtotal >= settings.freeDeliveryThreshold ? 0 : settings.deliveryCharge;
     const finalTotalAmount = subtotal + deliveryCharge;
 
+    let finalAddress = {
+        street: '',
+        city: '',
+        state: '',
+        zip: '',
+        addressType: 'Home'
+    };
+
+    if (shippingAddress) {
+        let addrObj = shippingAddress;
+        if (typeof shippingAddress === 'string') {
+            try {
+                addrObj = JSON.parse(shippingAddress);
+            } catch (e) {
+                addrObj = { street: shippingAddress };
+            }
+        }
+        
+        finalAddress = {
+            street: addrObj.streetAddress || addrObj.street || '',
+            city: addrObj.city || '',
+            state: addrObj.state || '',
+            zip: addrObj.postalCode || addrObj.zip || '',
+            addressType: addrObj.type || addrObj.addressType || ''
+        };
+    }
+
     const order = new Order({
         customer: customerId,
         items: orderItems,
-        shippingAddress,
+        shippingAddress: finalAddress,
         paymentMethod,
         totalAmount: finalTotalAmount,
         deliveryCharge,

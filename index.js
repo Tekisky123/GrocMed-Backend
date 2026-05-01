@@ -14,6 +14,7 @@ import dashboardRoutes from './routes/dashboardRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
 import adminNotificationRoutes from './routes/adminNotificationRoutes.js';
 import settingRoutes from './routes/settingRoutes.js';
+import bannerRoutes from './routes/bannerRoutes.js';
 
 // --- Accounts & Finance Routes ---
 import financeRoutes from './routes/financeRoute.js';
@@ -99,6 +100,10 @@ app.use('/api/order', orderRoutes);
 // Pincode Management
 app.use('/api/admin/pincodes', pincodeRoutes);
 app.use('/api/pincodes', pincodeRoutes);  // Public alias for customer app
+
+// Banner Management
+app.use('/api/admin/banners', bannerRoutes);
+app.use('/api/banners', bannerRoutes); // Public alias for customer app
 
 // Health check route
 app.get('/health', (req, res) => {
