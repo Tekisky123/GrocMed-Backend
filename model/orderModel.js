@@ -89,6 +89,12 @@ const orderSchema = new mongoose.Schema(
             method: { type: String, enum: ['Cash', 'Online', 'None'], default: 'None' },
             collectedAt: { type: Date }
         },
+        deliveryDate: {
+            type: Date,
+        },
+        deliverySlot: {
+            type: String, // Storing the slot name as a snapshot
+        },
     },
     {
         timestamps: true,

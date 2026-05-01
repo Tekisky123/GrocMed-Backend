@@ -19,7 +19,7 @@ export const getSettings = async (req, res, next) => {
 
 export const updateSettings = async (req, res, next) => {
     try {
-        const { minOrderValue, freeDeliveryThreshold, deliveryCharge } = req.body;
+        const { minOrderValue, freeDeliveryThreshold, deliveryCharge, maxOrdersPerDay } = req.body;
         
         let settings = await Setting.findOne({ singletonKey: 'config' });
         
@@ -30,6 +30,7 @@ export const updateSettings = async (req, res, next) => {
         if (minOrderValue !== undefined) settings.minOrderValue = minOrderValue;
         if (freeDeliveryThreshold !== undefined) settings.freeDeliveryThreshold = freeDeliveryThreshold;
         if (deliveryCharge !== undefined) settings.deliveryCharge = deliveryCharge;
+        if (maxOrdersPerDay !== undefined) settings.maxOrdersPerDay = maxOrdersPerDay;
         
         await settings.save();
         

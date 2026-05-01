@@ -23,6 +23,11 @@ const settingSchema = new mongoose.Schema(
             type: Number,
             default: 30,
             required: true
+        },
+        maxOrdersPerDay: {
+            type: Number,
+            default: 50,
+            required: true
         }
     },
     {

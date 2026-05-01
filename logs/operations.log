@@ -213,3 +213,10 @@
 [2026-05-01T09:26:58.327Z] [API-TRAFFIC] POST /api/cart/add | Status: 200 | IP: ::1
 [2026-05-01T09:27:05.510Z] [API-TRAFFIC] POST /api/order/placeOrder | Status: 201 | IP: ::1
 [2026-05-01T09:27:05.607Z] [API-TRAFFIC] DELETE /api/cart/clear | Status: 404 | IP: ::1
+[2026-05-01T13:47:59.585Z] [API-TRAFFIC] GET /admin/delivery-slots | Status: 404 | IP: ::1
+[2026-05-01T13:48:07.233Z] [API-TRAFFIC] GET /admin/delivery-slots | Status: 404 | IP: ::1
+[2026-05-01T13:49:58.666Z] [API-TRAFFIC] PUT /api/admin/settings | Status: 200 | IP: ::1
+[2026-05-01T13:50:06.413Z] [API-TRAFFIC] PUT /api/admin/settings | Status: 200 | IP: ::1
+[2026-05-01T13:50:17.512Z] [API-TRAFFIC] PUT /api/admin/settings | Status: 200 | IP: ::1
+[2026-05-01T13:51:36.636Z] [API-TRAFFIC] PUT /api/admin/settings | Status: 200 | IP: ::1
+[2026-05-01T14:01:10.237Z] [API-TRAFFIC] POST /api/admin/delivery-slots | Status: 201 | IP: ::1

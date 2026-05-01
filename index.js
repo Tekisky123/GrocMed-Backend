@@ -26,6 +26,7 @@ import statutoryRoutes from './routes/statutoryRoute.js';
 import gstRoutes from './routes/gstRoute.js';
 import accountingReportRoutes from './routes/reportsRoute.js';
 import pincodeRoutes from './routes/pincodeRoutes.js';
+import deliverySlotRoutes from './routes/deliverySlotRoutes.js';
 
 import { errorHandler, notFoundHandler } from './middleware/errorMiddleware.js';
 import { reqLogger } from './middleware/reqLogger.js';
@@ -104,6 +105,10 @@ app.use('/api/pincodes', pincodeRoutes);  // Public alias for customer app
 // Banner Management
 app.use('/api/admin/banners', bannerRoutes);
 app.use('/api/banners', bannerRoutes); // Public alias for customer app
+
+// Delivery Slot Management
+app.use('/api/admin/delivery-slots', deliverySlotRoutes);
+app.use('/api/delivery-slots', deliverySlotRoutes); // Public alias for customer app
 
 // Health check route
 app.get('/health', (req, res) => {

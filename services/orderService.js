@@ -6,7 +6,7 @@ import { sendPushNotification } from '../utils/notificationService.js';
 import { sysLog } from '../utils/logger.js';
 
 export const createOrderService = async (customerId, orderData) => {
-    const { shippingAddress, paymentMethod } = orderData;
+    const { shippingAddress, paymentMethod, deliveryDate, deliverySlot } = orderData;
 
     // Get customer's cart
     const cart = await Cart.findOne({ customer: customerId }).populate('items.product');
@@ -164,6 +164,8 @@ export const createOrderService = async (customerId, orderData) => {
         cgstAmount: parseFloat(totalCgst.toFixed(2)),
         sgstAmount: parseFloat(totalSgst.toFixed(2)),
         igstAmount: parseFloat(totalIgst.toFixed(2)),
+        deliveryDate,
+        deliverySlot,
         orderStatus: 'Placed',
         trackingHistory: [
             {
