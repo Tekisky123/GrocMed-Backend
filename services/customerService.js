@@ -5,7 +5,7 @@ import Customer from '../model/customerModel.js';
 import AdminNotification from '../model/adminNotificationModel.js';
 
 export const registerCustomerService = async (customerData) => {
-    const { name, phone, email, password, pan, adhaar } = customerData;
+    const { name, phone, email, password, pan, adhaar, shopName, licenseNumber, adhaarImage, licenseImage } = customerData;
 
     const existingCustomer = await Customer.findOne({ $or: [{ email }, { phone }] });
     if (existingCustomer) {
@@ -32,6 +32,10 @@ export const registerCustomerService = async (customerData) => {
         password: hashedPassword,
         pan,
         adhaar,
+        shopName,
+        licenseNumber,
+        adhaarImage,
+        licenseImage
     });
 
     const savedCustomer = await customer.save();
@@ -80,7 +84,7 @@ export const getCustomerByIdService = async (id) => {
 };
 
 export const updateCustomerService = async (id, updateData) => {
-    const { name, phone, email, addresses, pan, adhaar } = updateData;
+    const { name, phone, email, addresses, pan, adhaar, shopName, licenseNumber, adhaarImage, licenseImage } = updateData;
 
     const customer = await Customer.findById(id);
     if (!customer) throw new Error('Customer not found');
@@ -111,6 +115,10 @@ export const updateCustomerService = async (id, updateData) => {
             ...(addresses && { addresses }),
             ...(pan && { pan }),
             ...(adhaar && { adhaar }),
+            ...(shopName && { shopName }),
+            ...(licenseNumber && { licenseNumber }),
+            ...(adhaarImage && { adhaarImage }),
+            ...(licenseImage && { licenseImage }),
         },
         { new: true, runValidators: true }
     ).select('-password');

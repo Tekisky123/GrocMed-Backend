@@ -46,6 +46,20 @@ const customerSchema = new mongoose.Schema(
             unique: true,
             sparse: true,
         },
+        shopName: {
+            type: String,
+            trim: true,
+        },
+        licenseNumber: {
+            type: String,
+            trim: true,
+        },
+        adhaarImage: {
+            type: String,
+        },
+        licenseImage: {
+            type: String,
+        },
         fcmToken: {
             type: String,
             trim: true,

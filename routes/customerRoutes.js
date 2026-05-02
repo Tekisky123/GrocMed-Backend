@@ -18,10 +18,20 @@ import {
     validateUpdateCustomer
 } from '../middleware/validationMiddleware.js';
 
+import { upload } from '../middleware/uploadMiddleware.js';
+
 const router = express.Router();
 
 // Public Routes
-router.post('/register', validateRegisterCustomer, registerCustomer);
+router.post(
+    '/register', 
+    upload.fields([
+        { name: 'adhaarImage', maxCount: 1 }, 
+        { name: 'licenseImage', maxCount: 1 }
+    ]), 
+    validateRegisterCustomer, 
+    registerCustomer
+);
 router.post('/login', validateLoginCustomer, loginCustomer);
 
 // Protected Customer Routes

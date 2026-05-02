@@ -141,12 +141,20 @@ export const validateUpdateDeliveryPartner = (req, res, next) => {
 
 // Validate Customer Registration
 export const validateRegisterCustomer = (req, res, next) => {
-  const { name, phone, email, password } = req.body;
+  const { name, phone, email, password, shopName, adhaar, licenseNumber } = req.body;
 
-  if (!name || !phone || !email || !password) {
+  if (!name || !phone || !email || !password || !shopName || !adhaar || !licenseNumber) {
     return res.status(400).json({
       success: false,
-      message: 'Name, phone, email, and password are required',
+      message: 'All fields including Shop Name, Aadhaar, and License are required',
+    });
+  }
+
+  // Check for images in req.files
+  if (!req.files || !req.files.adhaarImage || !req.files.licenseImage) {
+    return res.status(400).json({
+      success: false,
+      message: 'Aadhaar and Shop License images are required',
     });
   }
 

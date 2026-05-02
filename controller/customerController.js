@@ -11,9 +11,23 @@ import {
     getCustomerNotificationsService,
 } from '../services/customerService.js';
 
+import { uploadImageToS3 } from '../utils/s3Upload.js';
+
 export const registerCustomer = async (req, res) => {
     try {
-        const customer = await registerCustomerService(req.body);
+        const customerData = { ...req.body };
+
+        // Handle file uploads if they exist
+        if (req.files) {
+            if (req.files.adhaarImage) {
+                customerData.adhaarImage = await uploadImageToS3(req.files.adhaarImage[0], 'customers/adhaar');
+            }
+            if (req.files.licenseImage) {
+                customerData.licenseImage = await uploadImageToS3(req.files.licenseImage[0], 'customers/license');
+            }
+        }
+
+        const customer = await registerCustomerService(customerData);
         res.status(201).json({
             success: true,
             message: 'Customer registered successfully',
