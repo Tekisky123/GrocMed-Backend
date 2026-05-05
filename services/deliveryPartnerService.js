@@ -87,9 +87,10 @@ export const deleteDeliveryPartnerService = async (id) => {
 };
 
 export const loginDeliveryPartnerService = async (credentials) => {
-    const { email, password } = credentials;
+    const { phone, email, password } = credentials;
+    const query = phone ? { phone } : { email };
 
-    const partner = await DeliveryPartner.findOne({ email });
+    const partner = await DeliveryPartner.findOne(query);
     if (!partner) {
         throw new Error('Delivery Partner not found');
     }

@@ -10,6 +10,7 @@ import {
     getAssignedOrders,
     getDashboardStats,
     getNotifications,
+    getPartnerProfile,
 } from '../controller/deliveryPartnerController.js';
 import { authenticateToken, isAdmin, isDeliveryPartner } from '../middleware/authMiddleware.js';
 import { validateCreateDeliveryPartner, validateUpdateDeliveryPartner } from '../middleware/validationMiddleware.js';
@@ -31,5 +32,6 @@ router.post('/update-fcm-token', authenticateToken, isDeliveryPartner, updateFcm
 router.get('/assigned-orders', authenticateToken, isDeliveryPartner, getAssignedOrders);
 router.get('/dashboard-stats', authenticateToken, isDeliveryPartner, getDashboardStats);
 router.get('/notifications', authenticateToken, isDeliveryPartner, getNotifications);
+router.get('/profile', authenticateToken, isDeliveryPartner, getPartnerProfile);
 
 export default router;

@@ -101,11 +101,11 @@ export const deleteDeliveryPartner = async (req, res) => {
 
 export const loginDeliveryPartner = async (req, res) => {
     try {
-        const { email, password } = req.body;
-        if (!email || !password) {
-            return res.status(400).json({ success: false, message: 'Email and password required' });
+        const { email, phone, password } = req.body;
+        if ((!email && !phone) || !password) {
+            return res.status(400).json({ success: false, message: 'Email/Phone and password required' });
         }
-        const data = await loginDeliveryPartnerService({ email, password });
+        const data = await loginDeliveryPartnerService({ email, phone, password });
         res.status(200).json({
             success: true,
             message: 'Login successful',
@@ -183,6 +183,19 @@ export const getNotifications = async (req, res) => {
         res.status(200).json({
             success: true,
             data: notifications,
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const getPartnerProfile = async (req, res) => {
+    try {
+        const partnerId = req.deliveryPartner?._id;
+        const partner = await getDeliveryPartnerByIdService(partnerId);
+        res.status(200).json({
+            success: true,
+            data: partner,
         });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
