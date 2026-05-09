@@ -221,12 +221,7 @@ export const updateOrderStatusWithScreenshot = async (req, res) => {
             return res.status(403).json({ success: false, message: 'Unauthorized: You can only update orders assigned to you.' });
         }
 
-        let screenshotUrl = null;
-        if (req.file) {
-            screenshotUrl = await uploadImageToS3(req.file, 'payment-screenshots');
-        }
-
-        const order = await updateOrderStatusService(id, status, partnerId, codMethod, screenshotUrl);
+        const order = await updateOrderStatusService(id, status, partnerId, codMethod);
 
         res.status(200).json({
             success: true,

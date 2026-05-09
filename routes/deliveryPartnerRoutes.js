@@ -35,6 +35,6 @@ router.get('/assigned-orders', authenticateToken, isDeliveryPartner, getAssigned
 router.get('/dashboard-stats', authenticateToken, isDeliveryPartner, getDashboardStats);
 router.get('/notifications', authenticateToken, isDeliveryPartner, getNotifications);
 router.get('/profile', authenticateToken, isDeliveryPartner, getPartnerProfile);
-router.put('/update-order-status/:id', authenticateToken, isDeliveryPartner, upload.single('screenshot'), updateOrderStatusWithScreenshot);
+router.put('/update-order-status/:id', authenticateToken, isDeliveryPartner, updateOrderStatusWithScreenshot);
 
 export default router;
