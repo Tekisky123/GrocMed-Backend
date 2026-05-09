@@ -87,7 +87,8 @@ const orderSchema = new mongoose.Schema(
         ],
         codCollectionDetails: {
             method: { type: String, enum: ['Cash', 'Online', 'None'], default: 'None' },
-            collectedAt: { type: Date }
+            collectedAt: { type: Date },
+            paymentScreenshot: { type: String } // URL to the uploaded screenshot
         },
         deliveryDate: {
             type: Date,

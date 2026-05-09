@@ -135,9 +135,26 @@ export const getAssignedOrdersService = async (partnerId) => {
 };
 
 export const getPartnerStatsService = async (partnerId) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
     const totalDeliveries = await Order.countDocuments({ 
         deliveryPartner: partnerId, 
         orderStatus: 'Delivered' 
+    });
+
+    const todayDeliveries = await Order.countDocuments({ 
+        deliveryPartner: partnerId, 
+        orderStatus: 'Delivered',
+        updatedAt: { $gte: today }
+    });
+
+    const monthlyDeliveries = await Order.countDocuments({ 
+        deliveryPartner: partnerId, 
+        orderStatus: 'Delivered',
+        updatedAt: { $gte: startOfMonth }
     });
 
     const pendingDeliveries = await Order.countDocuments({ 
@@ -145,23 +162,31 @@ export const getPartnerStatsService = async (partnerId) => {
         orderStatus: { $in: ['Shipped', 'Out for Delivery', 'Packed'] } 
     });
 
-    // Simple earnings logic: ₹40 per delivery (placeholder)
+    // Earnings logic: ₹40 per delivery
     const totalEarnings = totalDeliveries * 40;
+    const todayEarnings = todayDeliveries * 40;
+    const monthlyEarnings = monthlyDeliveries * 40;
 
     // Get recent activities (last 5 status changes for this partner)
     const recentOrders = await Order.find({ deliveryPartner: partnerId })
         .sort({ updatedAt: -1 })
         .limit(5)
-        .select('orderStatus updatedAt _id');
+        .select('orderStatus updatedAt _id totalAmount');
 
     return {
         totalDeliveries,
+        todayDeliveries,
+        monthlyDeliveries,
         pendingDeliveries,
+        totalEarnings,
+        todayEarnings,
+        monthlyEarnings,
         recentActivities: recentOrders.map(o => ({
             id: o._id,
             status: o.orderStatus,
             time: o.updatedAt,
-            orderId: o._id
+            orderId: o._id,
+            amount: o.totalAmount
         }))
     };
 };

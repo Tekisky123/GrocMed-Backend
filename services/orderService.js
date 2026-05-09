@@ -229,7 +229,7 @@ export const getOrderByIdForAdminService = async (orderId) => {
     return order;
 };
 
-export const updateOrderStatusService = async (orderId, status, deliveryPartnerId = null, codMethod = null) => {
+export const updateOrderStatusService = async (orderId, status, deliveryPartnerId = null, codMethod = null, paymentScreenshot = null) => {
     const validStatuses = ['Placed', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered', 'Cancelled', 'Returned'];
     if (!validStatuses.includes(status)) {
         throw new Error('Invalid order status');
@@ -278,7 +278,8 @@ export const updateOrderStatusService = async (orderId, status, deliveryPartnerI
         }
         order.codCollectionDetails = {
             method: codMethod,
-            collectedAt: new Date()
+            collectedAt: new Date(),
+            paymentScreenshot: paymentScreenshot
         };
         order.paymentStatus = 'Paid';
         sysLog('FINANCE', `COD Payment collected via ${codMethod} for Order [${orderId}]. Status set to Paid.`);

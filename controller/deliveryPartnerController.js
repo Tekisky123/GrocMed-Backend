@@ -201,3 +201,39 @@ export const getPartnerProfile = async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
+
+import { updateOrderStatusService, getOrderByIdForAdminService } from '../services/orderService.js';
+import { uploadImageToS3 } from '../utils/s3Upload.js';
+
+export const updateOrderStatusWithScreenshot = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status, codMethod } = req.body;
+        const partnerId = req.deliveryPartner?._id;
+
+        if (!status) {
+            return res.status(400).json({ success: false, message: 'Status is required' });
+        }
+
+        // Security Check: Ensure partner owns the order
+        const orderCheck = await getOrderByIdForAdminService(id);
+        if (orderCheck.deliveryPartner?._id.toString() !== partnerId.toString()) {
+            return res.status(403).json({ success: false, message: 'Unauthorized: You can only update orders assigned to you.' });
+        }
+
+        let screenshotUrl = null;
+        if (req.file) {
+            screenshotUrl = await uploadImageToS3(req.file, 'payment-screenshots');
+        }
+
+        const order = await updateOrderStatusService(id, status, partnerId, codMethod, screenshotUrl);
+
+        res.status(200).json({
+            success: true,
+            message: 'Order status updated successfully',
+            data: order,
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};

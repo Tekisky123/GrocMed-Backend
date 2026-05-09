@@ -11,9 +11,11 @@ import {
     getDashboardStats,
     getNotifications,
     getPartnerProfile,
+    updateOrderStatusWithScreenshot,
 } from '../controller/deliveryPartnerController.js';
 import { authenticateToken, isAdmin, isDeliveryPartner } from '../middleware/authMiddleware.js';
 import { validateCreateDeliveryPartner, validateUpdateDeliveryPartner } from '../middleware/validationMiddleware.js';
+import { upload } from '../middleware/uploadMiddleware.js';
 
 const router = express.Router();
 
@@ -33,5 +35,6 @@ router.get('/assigned-orders', authenticateToken, isDeliveryPartner, getAssigned
 router.get('/dashboard-stats', authenticateToken, isDeliveryPartner, getDashboardStats);
 router.get('/notifications', authenticateToken, isDeliveryPartner, getNotifications);
 router.get('/profile', authenticateToken, isDeliveryPartner, getPartnerProfile);
+router.put('/update-order-status/:id', authenticateToken, isDeliveryPartner, upload.single('screenshot'), updateOrderStatusWithScreenshot);
 
 export default router;
