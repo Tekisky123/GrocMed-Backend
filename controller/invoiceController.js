@@ -27,11 +27,11 @@ export const downloadInvoice = async (req, res) => {
         doc.fillColor('#F8800E')
            .fontSize(24)
            .font('Helvetica-Bold')
-           .text('GrocMed', 30, 40, { continued: true })
+           .text('Apky', 30, 40, { continued: true })
            .fillColor('#333')
            .fontSize(12)
            .font('Helvetica')
-           .text(' Pvt Ltd', { baseline: 'bottom' });
+           .text(' Dark Stores', { baseline: 'bottom' });
 
         doc.fillColor('#333')
            .fontSize(16)
@@ -46,9 +46,9 @@ export const downloadInvoice = async (req, res) => {
         
         // Seller Information
         doc.fillColor('#F8800E').fontSize(9).font('Helvetica-Bold').text('SOLD BY / SELLER', 30, partiesY);
-        doc.fillColor('#000').fontSize(11).font('Helvetica-Bold').text('GrocMed Private Limited', 30, partiesY + 12);
+        doc.fillColor('#000').fontSize(11).font('Helvetica-Bold').text('Apky Dark Stores Private Limited', 30, partiesY + 12);
         doc.fillColor('#444').fontSize(8).font('Helvetica').text(
-            '16-2-705/1/1, Old Malakpet,\nHyderabad, Telangana 500036\nGSTIN: 36AAACZ8867B1Z1\nFSSAI: 10020064002537\nEmail: contact@grocmed.com',
+            '16-11-1/41-45 saleem nagar,\nMalakpet Colony Hyderabad.\nTelangana 500036\nGSTIN: 36ABECA5204C1Z9\nEmail: contact@apkydarkstores.com',
             30, partiesY + 26, { width: 180, lineGap: 2 }
         );
 
@@ -185,11 +185,11 @@ export const downloadInvoice = async (req, res) => {
 
         // Signature Placeholder
         doc.rect(380, bottomY, 185, 80).stroke('#333');
-        doc.fontSize(8).font('Helvetica-Bold').text('For GrocMed Private Limited', 380, bottomY + 5, { width: 185, align: 'center' });
+        doc.fontSize(8).font('Helvetica-Bold').text('For Apky Dark Stores Pvt Ltd', 380, bottomY + 5, { width: 185, align: 'center' });
         doc.fontSize(7).font('Helvetica').text('Authorized Signatory', 380, bottomY + 65, { width: 185, align: 'center' });
 
         // --- Footer Footer ---
-        doc.fontSize(7).fillColor('#888').text('Registered Office: 16-2-705/1/1, Old Malakpet, Hyderabad, Telangana 500036', 30, 810, { align: 'center', width: contentWidth });
+        doc.fontSize(7).fillColor('#888').text('Registered Office: 16-11-1/41-45 saleem nagar, Malakpet Colony Hyderabad, Telangana 500036', 30, 810, { align: 'center', width: contentWidth });
 
         doc.end();
 
