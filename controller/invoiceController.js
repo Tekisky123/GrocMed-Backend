@@ -23,15 +23,28 @@ export const downloadInvoice = async (req, res) => {
         const contentWidth = pageWidth - leftMargin - rightMargin;
 
         // --- Header Section ---
-        // Brand & Title
-        doc.fillColor('#F8800E')
-           .fontSize(24)
-           .font('Helvetica-Bold')
-           .text('Apky', 30, 40, { continued: true })
-           .fillColor('#333')
-           .fontSize(12)
-           .font('Helvetica')
-           .text(' Dark Stores', { baseline: 'bottom' });
+        try {
+            const logoUrl = 'https://grocmed.com/assets/logo-removebg-preview-DM8hPqCZ.png';
+            const response = await fetch(logoUrl);
+            const arrayBuffer = await response.arrayBuffer();
+            const logoBuffer = Buffer.from(arrayBuffer);
+            
+            // Add Logo
+            doc.image(logoBuffer, 30, 30, { height: 40 });
+            
+            // Brand Name next to logo
+            doc.fillColor('#F8800E')
+               .fontSize(24)
+               .font('Helvetica-Bold')
+               .text('GrocMed', 80, 42);
+        } catch (logoError) {
+            console.error('Error adding logo to PDF:', logoError);
+            // Fallback to text if logo fails
+            doc.fillColor('#F8800E')
+               .fontSize(24)
+               .font('Helvetica-Bold')
+               .text('GrocMed', 30, 40);
+        }
 
         doc.fillColor('#333')
            .fontSize(16)
