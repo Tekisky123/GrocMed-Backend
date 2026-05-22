@@ -104,7 +104,7 @@ export const validateCreateDeliveryPartner = (req, res, next) => {
 
 // Validate Delivery Partner Update
 export const validateUpdateDeliveryPartner = (req, res, next) => {
-  const { phone, vehicleType, status } = req.body;
+  const { phone, email, vehicleType, status } = req.body;
 
   // Validate phone if provided
   if (phone && phone.length < 10) {
@@ -112,6 +112,17 @@ export const validateUpdateDeliveryPartner = (req, res, next) => {
       success: false,
       message: 'Phone number must be at least 10 digits',
     });
+  }
+
+  // Validate email if provided
+  if (email) {
+    const emailRegex = /\S+@\S+\.\S+/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid email address',
+      });
+    }
   }
 
   // Validate vehicle type if provided
@@ -141,20 +152,20 @@ export const validateUpdateDeliveryPartner = (req, res, next) => {
 
 // Validate Customer Registration
 export const validateRegisterCustomer = (req, res, next) => {
-  const { name, phone, email, password, shopName, adhaar, licenseNumber } = req.body;
+  const { name, phone, email, password, shopName, adhaar } = req.body;
 
-  if (!name || !phone || !email || !password || !shopName || !adhaar || !licenseNumber) {
+  if (!name || !phone || !email || !password || !shopName || !adhaar) {
     return res.status(400).json({
       success: false,
-      message: 'All fields including Shop Name, Aadhaar, and License are required',
+      message: 'All fields including Shop Name and Aadhaar are required',
     });
   }
 
   // Check for images in req.files
-  if (!req.files || !req.files.adhaarImage || !req.files.licenseImage) {
+  if (!req.files || !req.files.adhaarImage) {
     return res.status(400).json({
       success: false,
-      message: 'Aadhaar and Shop License images are required',
+      message: 'Aadhaar image is required',
     });
   }
 

@@ -14,8 +14,18 @@ const adminNotificationSchema = new mongoose.Schema(
         },
         targetAudience: {
             type: String,
-            enum: ['all', 'customers', 'delivery_partners'],
+            enum: ['all', 'customers', 'delivery_partners', 'specific'],
             required: true,
+        },
+        recipientType: {
+            type: String,
+            enum: ['Customer', 'DeliveryPartner'],
+            required: function() { return this.targetAudience === 'specific'; }
+        },
+        recipientId: {
+            type: mongoose.Schema.Types.ObjectId,
+            refPath: 'recipientType',
+            required: function() { return this.targetAudience === 'specific'; }
         },
         status: {
             type: String,

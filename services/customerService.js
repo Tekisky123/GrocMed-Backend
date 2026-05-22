@@ -167,21 +167,23 @@ export const getCustomerWithOrdersService = async (customerId) => {
     };
 };
 
-export const getCustomerNotificationsService = async (page = 1, limit = 20) => {
+export const getCustomerNotificationsService = async (customerId, page = 1, limit = 20) => {
     const skip = (page - 1) * limit;
 
-    const notifications = await AdminNotification.find({
-        targetAudience: { $in: ['all', 'customers'] },
+    const query = {
+        $or: [
+            { targetAudience: { $in: ['all', 'customers'] } },
+            { targetAudience: 'specific', recipientType: 'Customer', recipientId: customerId }
+        ],
         status: 'sent'
-    })
+    };
+
+    const notifications = await AdminNotification.find(query)
     .sort({ sentAt: -1 })
     .skip(skip)
     .limit(limit);
 
-    const total = await AdminNotification.countDocuments({
-        targetAudience: { $in: ['all', 'customers'] },
-        status: 'sent'
-    });
+    const total = await AdminNotification.countDocuments(query);
 
     return {
         notifications,

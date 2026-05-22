@@ -190,8 +190,9 @@ export const searchCustomers = async (req, res) => {
 
 export const getCustomerNotifications = async (req, res) => {
     try {
+        const customerId = req.customer._id;
         const { page, limit } = req.query;
-        const data = await getCustomerNotificationsService(parseInt(page), parseInt(limit));
+        const data = await getCustomerNotificationsService(customerId, parseInt(page), parseInt(limit));
         res.status(200).json({
             success: true,
             ...data

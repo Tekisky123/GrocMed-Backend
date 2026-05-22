@@ -40,7 +40,7 @@ export const sendNotification = async (req, res, next) => {
         if (targetGroup === 'delivery_partners' || targetGroup === 'all') {
             const partners = await DeliveryPartner.find({
                 fcmToken: { $exists: true, $ne: null },
-                accountStatus: 'Approved'
+                isActive: true
             }).select('fcmToken');
             recipients = [...recipients, ...partners];
         }

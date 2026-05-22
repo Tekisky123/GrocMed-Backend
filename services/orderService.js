@@ -4,6 +4,7 @@ import Product from '../model/productModel.js';
 import Setting from '../model/settingModel.js';
 import { sendPushNotification } from '../utils/notificationService.js';
 import { sysLog } from '../utils/logger.js';
+import AdminNotification from '../model/adminNotificationModel.js';
 
 export const createOrderService = async (customerId, orderData) => {
     const { shippingAddress, paymentMethod, deliveryDate, deliverySlot } = orderData;
@@ -241,6 +242,8 @@ export const updateOrderStatusService = async (orderId, status, deliveryPartnerI
     }
 
     const previousStatus = order.orderStatus;
+    const previousDeliveryPartnerId = order.deliveryPartner;
+    const isNewPartnerAssigned = deliveryPartnerId && (!previousDeliveryPartnerId || previousDeliveryPartnerId.toString() !== deliveryPartnerId.toString());
     
     // Post-Delivery Cancellation Block
     if (status === 'Cancelled' && previousStatus === 'Delivered') {
@@ -292,18 +295,67 @@ export const updateOrderStatusService = async (orderId, status, deliveryPartnerI
         .populate('customer', 'name phone email fcmToken')
         .populate('deliveryPartner', 'name phone email fcmToken');
 
-    // Send Push Notification to Customer
-    if (updatedOrder.customer && updatedOrder.customer.fcmToken) {
-        const title = 'Order Update';
-        const body = `Your order #${updatedOrder._id.toString().slice(-6)} is now ${status}`;
-        await sendPushNotification(updatedOrder.customer.fcmToken, title, body, { type: 'ORDER_UPDATE', orderId: orderId.toString() });
+    // Send Push & Save In-App Notification to Customer
+    if (updatedOrder.customer) {
+        const customerTitle = 'Order Update';
+        const customerBody = `Your order #${updatedOrder._id.toString().slice(-6)} is now ${status}`;
+        
+        if (updatedOrder.customer.fcmToken) {
+            try {
+                await sendPushNotification(updatedOrder.customer.fcmToken, customerTitle, customerBody, { type: 'ORDER_UPDATE', orderId: orderId.toString() });
+            } catch (err) {
+                console.error('Failed to send customer push notification:', err);
+            }
+        }
+
+        try {
+            await AdminNotification.create({
+                title: customerTitle,
+                message: customerBody,
+                targetAudience: 'specific',
+                recipientType: 'Customer',
+                recipientId: updatedOrder.customer._id,
+                status: 'sent',
+                sentAt: new Date()
+            });
+        } catch (err) {
+            console.error('Failed to create customer in-app notification:', err);
+        }
     }
 
-    // Send Push Notification to Delivery Partner (if assigned)
-    if (updatedOrder.deliveryPartner && updatedOrder.deliveryPartner.fcmToken) {
-        const title = 'New Task Update';
-        const body = `Order #${updatedOrder._id.toString().slice(-6)}: Status changed to ${status}`;
-        await sendPushNotification(updatedOrder.deliveryPartner.fcmToken, title, body, { type: 'PARTNER_ORDER_UPDATE', orderId: orderId.toString() });
+    // Send Push & Save In-App Notification to Delivery Partner (if assigned)
+    if (updatedOrder.deliveryPartner) {
+        let partnerTitle = 'New Task Update';
+        let partnerBody = `Order #${updatedOrder._id.toString().slice(-6)}: Status changed to ${status}`;
+        let notificationType = 'PARTNER_ORDER_UPDATE';
+
+        if (isNewPartnerAssigned) {
+            partnerTitle = 'New Order Assigned';
+            partnerBody = `You have been assigned order #${updatedOrder._id.toString().slice(-6)}. Status: ${status}`;
+            notificationType = 'PARTNER_ORDER_ASSIGNED';
+        }
+
+        if (updatedOrder.deliveryPartner.fcmToken) {
+            try {
+                await sendPushNotification(updatedOrder.deliveryPartner.fcmToken, partnerTitle, partnerBody, { type: notificationType, orderId: orderId.toString() });
+            } catch (err) {
+                console.error('Failed to send partner push notification:', err);
+            }
+        }
+
+        try {
+            await AdminNotification.create({
+                title: partnerTitle,
+                message: partnerBody,
+                targetAudience: 'specific',
+                recipientType: 'DeliveryPartner',
+                recipientId: updatedOrder.deliveryPartner._id,
+                status: 'sent',
+                sentAt: new Date()
+            });
+        } catch (err) {
+            console.error('Failed to create partner in-app notification:', err);
+        }
     }
 
     return updatedOrder;

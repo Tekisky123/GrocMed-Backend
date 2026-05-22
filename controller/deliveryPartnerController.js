@@ -179,7 +179,8 @@ export const getDashboardStats = async (req, res) => {
 
 export const getNotifications = async (req, res) => {
     try {
-        const notifications = await getPartnerNotificationsService();
+        const partnerId = req.deliveryPartner?._id;
+        const notifications = await getPartnerNotificationsService(partnerId);
         res.status(200).json({
             success: true,
             data: notifications,

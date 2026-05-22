@@ -47,7 +47,7 @@ export const getDeliveryPartnerByIdService = async (id) => {
 };
 
 export const updateDeliveryPartnerService = async (id, updateData) => {
-    const { name, phone, vehicleType, vehicleNumber, status, isActive } = updateData;
+    const { name, phone, email, licenseNumber, vehicleType, vehicleNumber, status, isActive, password } = updateData;
 
     const partner = await DeliveryPartner.findById(id);
     if (!partner) {
@@ -59,22 +59,39 @@ export const updateDeliveryPartnerService = async (id, updateData) => {
         const existingPhone = await DeliveryPartner.findOne({ phone, _id: { $ne: id } });
         if (existingPhone) throw new Error('Phone number already exists');
     }
+    if (email && email !== partner.email) {
+        const existingEmail = await DeliveryPartner.findOne({ email, _id: { $ne: id } });
+        if (existingEmail) throw new Error('Email already exists');
+    }
+    if (licenseNumber && licenseNumber !== partner.licenseNumber) {
+        const existingLicense = await DeliveryPartner.findOne({ licenseNumber, _id: { $ne: id } });
+        if (existingLicense) throw new Error('License number already exists');
+    }
+
+    let hashedPassword;
+    if (password) {
+        hashedPassword = await bcrypt.hash(password, 10);
+    }
 
     const updatedPartner = await DeliveryPartner.findByIdAndUpdate(
         id,
         {
             ...(name && { name }),
             ...(phone && { phone }),
+            ...(email && { email }),
+            ...(licenseNumber && { licenseNumber }),
             ...(vehicleType && { vehicleType }),
             ...(vehicleNumber && { vehicleNumber }),
             ...(status && { status }),
             ...(isActive !== undefined && { isActive }),
+            ...(hashedPassword && { password: hashedPassword }),
         },
         { new: true, runValidators: true }
     ).select('-password');
 
     return updatedPartner;
 };
+
 
 export const deleteDeliveryPartnerService = async (id) => {
     const partner = await DeliveryPartner.findById(id);
@@ -193,9 +210,12 @@ export const getPartnerStatsService = async (partnerId) => {
 
 import AdminNotification from '../model/adminNotificationModel.js';
 
-export const getPartnerNotificationsService = async () => {
+export const getPartnerNotificationsService = async (partnerId) => {
     const notifications = await AdminNotification.find({
-        targetAudience: { $in: ['all', 'delivery_partners'] },
+        $or: [
+            { targetAudience: { $in: ['all', 'delivery_partners'] } },
+            { targetAudience: 'specific', recipientType: 'DeliveryPartner', recipientId: partnerId }
+        ],
         status: 'sent'
     }).sort({ sentAt: -1 });
     return notifications;

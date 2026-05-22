@@ -232,3 +232,5 @@
 [2026-05-09T18:45:29.948Z] [API-TRAFFIC] PUT /api/admin/deliveryPartner/update-order-status/69ff77322dee3d2331659c3c | Status: 200 | IP: ::1
 [2026-05-09T18:57:40.439Z] [FINANCE] COD Payment collected via Online for Order [69ff77322dee3d2331659c3c]. Status set to Paid.
 [2026-05-09T18:57:40.969Z] [API-TRAFFIC] PUT /api/admin/deliveryPartner/update-order-status/69ff77322dee3d2331659c3c | Status: 200 | IP: ::1
+[2026-05-22T21:49:16.403Z] [API-TRAFFIC] DELETE /api/admin/deliveryPartner/deleteDeliveryPartner/6a0af7d9e8d1dbbd9edede5f | Status: 200 | IP: ::1
+[2026-05-22T21:49:20.012Z] [API-TRAFFIC] DELETE /api/admin/deliveryPartner/deleteDeliveryPartner/6a0af51de8d1dbbd9edede34 | Status: 200 | IP: ::1
