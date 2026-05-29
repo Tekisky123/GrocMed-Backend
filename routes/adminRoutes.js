@@ -10,7 +10,7 @@ import {
   exportOrdersBackupController,
   exportCustomersBackupController,
 } from '../controller/adminController.js';
-import { authenticateToken } from '../middleware/authMiddleware.js';
+import { authenticateToken, isSuperAdmin } from '../middleware/authMiddleware.js';
 import { validateCreateAdmin, validateLogin } from '../middleware/validationMiddleware.js';
 
 const router = express.Router();
@@ -18,26 +18,26 @@ const router = express.Router();
 // Public route - Login (no authentication required)
 router.post('/loginAdmin', validateLogin, loginAdminController);
 
-// Protected routes - All require authentication
+// Protected routes - All require authentication and super_admin privileges
 // Create admin
-router.post('/createAdmin', authenticateToken, validateCreateAdmin, createAdminController);
+router.post('/createAdmin', authenticateToken, isSuperAdmin, validateCreateAdmin, createAdminController);
 
 // Get all admins
-router.get('/getAllAdmins', authenticateToken, getAllAdminsController);
+router.get('/getAllAdmins', authenticateToken, isSuperAdmin, getAllAdminsController);
 
 // Get admin by ID
-router.get('/getAdminById/:id', authenticateToken, getAdminByIdController);
+router.get('/getAdminById/:id', authenticateToken, isSuperAdmin, getAdminByIdController);
 
 // Update admin
-router.put('/updateAdmin/:id', authenticateToken, updateAdminController);
+router.put('/updateAdmin/:id', authenticateToken, isSuperAdmin, updateAdminController);
 
 // Delete admin
-router.delete('/deleteAdmin/:id', authenticateToken, deleteAdminController);
+router.delete('/deleteAdmin/:id', authenticateToken, isSuperAdmin, deleteAdminController);
 
 // Database CSV Backups
-router.get('/exportProducts', authenticateToken, exportProductsBackupController);
-router.get('/exportOrders', authenticateToken, exportOrdersBackupController);
-router.get('/exportCustomers', authenticateToken, exportCustomersBackupController);
+router.get('/exportProducts', authenticateToken, isSuperAdmin, exportProductsBackupController);
+router.get('/exportOrders', authenticateToken, isSuperAdmin, exportOrdersBackupController);
+router.get('/exportCustomers', authenticateToken, isSuperAdmin, exportCustomersBackupController);
 
 export default router;
 

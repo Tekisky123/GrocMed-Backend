@@ -38,7 +38,7 @@ export const authenticateToken = async (req, res, next) => {
         });
       }
       req.deliveryPartner = partner;
-    } else if (decoded.role === 'admin') {
+    } else if (decoded.role === 'admin' || decoded.role === 'super_admin') {
       const admin = await Admin.findById(decoded.id).select('-password');
       if (!admin || !admin.isActive) {
         return res.status(401).json({
@@ -107,6 +107,16 @@ export const isAdmin = (req, res, next) => {
     return res.status(403).json({
       success: false,
       message: 'Access denied. Admin only resource.',
+    });
+  }
+  next();
+};
+
+export const isSuperAdmin = (req, res, next) => {
+  if (!req.admin || req.admin.role !== 'super_admin') {
+    return res.status(403).json({
+      success: false,
+      message: 'Access denied. Super Admin only resource.',
     });
   }
   next();

@@ -30,6 +30,7 @@ import deliverySlotRoutes from './routes/deliverySlotRoutes.js';
 
 import { errorHandler, notFoundHandler } from './middleware/errorMiddleware.js';
 import { reqLogger } from './middleware/reqLogger.js';
+import { authenticateToken, isSuperAdmin } from './middleware/authMiddleware.js';
 
 dotenv.config();
 
@@ -85,14 +86,14 @@ app.use('/api/admin/settings', settingRoutes);
 app.use('/api/settings', settingRoutes); // Public alias for frontend delivery evaluation
 
 // --- Accounts & Finance APIs ---
-app.use('/api/admin/finance', financeRoutes);
-app.use('/api/admin/purchases', purchaseInvoiceRoutes);
-app.use('/api/admin/inventory', inventoryAdjustmentRoutes);
-app.use('/api/admin/payroll', payrollRoutes);
-app.use('/api/admin/assets', fixedAssetRoutes);
-app.use('/api/admin/statutory', statutoryRoutes);
-app.use('/api/admin/gst', gstRoutes);
-app.use('/api/admin/accounting-reports', accountingReportRoutes);
+app.use('/api/admin/finance', authenticateToken, isSuperAdmin, financeRoutes);
+app.use('/api/admin/purchases', authenticateToken, purchaseInvoiceRoutes);
+app.use('/api/admin/inventory', authenticateToken, inventoryAdjustmentRoutes);
+app.use('/api/admin/payroll', authenticateToken, isSuperAdmin, payrollRoutes);
+app.use('/api/admin/assets', authenticateToken, isSuperAdmin, fixedAssetRoutes);
+app.use('/api/admin/statutory', authenticateToken, isSuperAdmin, statutoryRoutes);
+app.use('/api/admin/gst', authenticateToken, gstRoutes);
+app.use('/api/admin/accounting-reports', authenticateToken, isSuperAdmin, accountingReportRoutes);
 
 app.use('/api/customer', customerRoutes);
 app.use('/api/category', categoryRoutes);

@@ -16,8 +16,8 @@ import {
 dotenv.config();
 
 // Generate JWT Token
-const generateToken = (id) => {
-  return jwt.sign({ id, role: 'admin' }, process.env.TOKEN, {
+const generateToken = (id, role) => {
+  return jwt.sign({ id, role: role || 'admin' }, process.env.TOKEN, {
     expiresIn: '24h',
   });
 };
@@ -107,7 +107,7 @@ export const loginAdminController = async (req, res, next) => {
 
     const admin = await loginAdminService(email, password);
 
-    const token = generateToken(admin.id);
+    const token = generateToken(admin.id, admin.role);
 
     res.status(200).json({
       success: true,

@@ -234,3 +234,6 @@
 [2026-05-09T18:57:40.969Z] [API-TRAFFIC] PUT /api/admin/deliveryPartner/update-order-status/69ff77322dee3d2331659c3c | Status: 200 | IP: ::1
 [2026-05-22T21:49:16.403Z] [API-TRAFFIC] DELETE /api/admin/deliveryPartner/deleteDeliveryPartner/6a0af7d9e8d1dbbd9edede5f | Status: 200 | IP: ::1
 [2026-05-22T21:49:20.012Z] [API-TRAFFIC] DELETE /api/admin/deliveryPartner/deleteDeliveryPartner/6a0af51de8d1dbbd9edede34 | Status: 200 | IP: ::1
+[2026-05-29T12:06:02.961Z] [API-TRAFFIC] POST /api/admin/createAdmin | Status: 201 | IP: ::1
+[2026-05-29T12:06:16.934Z] [API-TRAFFIC] POST /api/admin/loginAdmin | Status: 200 | IP: ::1
+[2026-05-29T12:06:43.534Z] [API-TRAFFIC] POST /api/admin/loginAdmin | Status: 200 | IP: ::1
