@@ -7,7 +7,7 @@ const router = express.Router();
 // Publicly available to query constraints instantly
 router.get('/', getSettings);
 
-// Protected update route (Super Admin only)
-router.put('/', authenticateToken, isSuperAdmin, updateSettings);
+// Protected update route (Admin only)
+router.put('/', authenticateToken, updateSettings);
 
 export default router;

@@ -35,9 +35,9 @@ router.put('/updateAdmin/:id', authenticateToken, isSuperAdmin, updateAdminContr
 router.delete('/deleteAdmin/:id', authenticateToken, isSuperAdmin, deleteAdminController);
 
 // Database CSV Backups
-router.get('/exportProducts', authenticateToken, isSuperAdmin, exportProductsBackupController);
-router.get('/exportOrders', authenticateToken, isSuperAdmin, exportOrdersBackupController);
-router.get('/exportCustomers', authenticateToken, isSuperAdmin, exportCustomersBackupController);
+router.get('/exportProducts', authenticateToken, exportProductsBackupController);
+router.get('/exportOrders', authenticateToken, exportOrdersBackupController);
+router.get('/exportCustomers', authenticateToken, exportCustomersBackupController);
 
 export default router;
 
