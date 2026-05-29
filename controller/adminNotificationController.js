@@ -1,4 +1,5 @@
 import { sendPushNotification } from '../utils/notificationService.js';
+import { sendWhatsAppMessage } from '../utils/whatsappService.js';
 import Customer from '../model/customerModel.js';
 import DeliveryPartner from '../model/deliveryPartnerModel.js';
 import AdminNotification from '../model/adminNotificationModel.js';
@@ -165,6 +166,72 @@ export const getNotificationById = async (req, res, next) => {
         res.status(200).json({
             success: true,
             data: notification
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const sendWhatsAppCampaign = async (req, res, next) => {
+    try {
+        const { campaignName, templateParams, targetAudience, specificNumbers } = req.body;
+
+        if (!campaignName) {
+            return res.status(400).json({
+                success: false,
+                message: 'Campaign Name is required'
+            });
+        }
+
+        let recipients = [];
+
+        if (targetAudience === 'all' || targetAudience === 'customers') {
+            const customers = await Customer.find({ isActive: true }).select('name phone');
+            recipients = customers.map(c => ({ name: c.name, phone: c.phone }));
+        } else if (targetAudience === 'specific' && specificNumbers) {
+            const numbers = specificNumbers.split(',').map(n => n.trim()).filter(n => n.length > 0);
+            recipients = numbers.map(num => ({ name: 'Valued Customer', phone: num }));
+        }
+
+        if (recipients.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'No recipients found for the selected audience'
+            });
+        }
+
+        console.log(`[WHATSAPP CAMPAIGN] Triggering broadcast campaign: "${campaignName}" to ${recipients.length} recipients.`);
+
+        let successCount = 0;
+        let failureCount = 0;
+
+        const sendPromises = recipients.map(async (recipient) => {
+            try {
+                // Dynamically swap {name} with recipient's actual name in the parameters
+                const formattedParams = (templateParams || []).map(param => 
+                    typeof param === 'string' ? param.replace('{name}', recipient.name) : param
+                );
+
+                const result = await sendWhatsAppMessage(recipient.phone, recipient.name, campaignName, formattedParams);
+                if (result.success) {
+                    successCount++;
+                } else {
+                    failureCount++;
+                }
+            } catch (err) {
+                console.error(`Failed to send WhatsApp to ${recipient.phone}:`, err);
+                failureCount++;
+            }
+        });
+
+        // Run in background and respond immediately to prevent request timeout
+        Promise.all(sendPromises).then(() => {
+            console.log(`[WHATSAPP CAMPAIGN] Broadcast completed. Success: ${successCount}, Failures: ${failureCount}`);
+        });
+
+        res.status(200).json({
+            success: true,
+            message: `WhatsApp campaign broadcast initiated for ${recipients.length} recipients.`
         });
     } catch (error) {
         next(error);

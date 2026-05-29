@@ -3,6 +3,7 @@ import Cart from '../model/cartModel.js';
 import Product from '../model/productModel.js';
 import Setting from '../model/settingModel.js';
 import { sendPushNotification } from '../utils/notificationService.js';
+import { sendWhatsAppMessage } from '../utils/whatsappService.js';
 import { sysLog } from '../utils/logger.js';
 import AdminNotification from '../model/adminNotificationModel.js';
 
@@ -186,6 +187,30 @@ export const createOrderService = async (customerId, orderData) => {
     cart.totalAmount = 0;
     await cart.save();
 
+    // Trigger WhatsApp Confirmation Notification
+    try {
+        const campaignName = process.env.AISENSY_CAMPAIGN_ORDER_CONFIRMED || 'order_confirmed';
+        Order.findById(order._id)
+            .populate('customer', 'name phone')
+            .then(populatedOrder => {
+                if (populatedOrder && populatedOrder.customer && populatedOrder.customer.phone) {
+                    const orderIdShort = populatedOrder._id.toString().slice(-8).toUpperCase();
+                    const totalFormatted = `₹${populatedOrder.totalAmount}`;
+                    const deliveryDetails = `${new Date(populatedOrder.deliveryDate).toLocaleDateString()} (${populatedOrder.deliverySlot})`;
+                    
+                    sendWhatsAppMessage(
+                        populatedOrder.customer.phone,
+                        populatedOrder.customer.name,
+                        campaignName,
+                        [populatedOrder.customer.name, orderIdShort, totalFormatted, deliveryDetails]
+                    ).catch(err => console.error('Failed to send Order Confirmation WhatsApp:', err));
+                }
+            })
+            .catch(err => console.error('Failed to populate customer for WhatsApp Confirmation:', err));
+    } catch (e) {
+        console.error('Failed to initialize WhatsApp Confirmation flow:', e);
+    }
+
     return order;
 };
 
@@ -299,6 +324,22 @@ export const updateOrderStatusService = async (orderId, status, deliveryPartnerI
     if (updatedOrder.customer) {
         const customerTitle = 'Order Update';
         const customerBody = `Your order #${updatedOrder._id.toString().slice(-6)} is now ${status}`;
+
+        // Trigger WhatsApp Order Status Change Notification
+        try {
+            const statusCampaign = process.env.AISENSY_CAMPAIGN_ORDER_STATUS_CHANGED || 'order_status_changed';
+            if (updatedOrder.customer.phone) {
+                const orderIdShort = updatedOrder._id.toString().slice(-8).toUpperCase();
+                sendWhatsAppMessage(
+                    updatedOrder.customer.phone,
+                    updatedOrder.customer.name,
+                    statusCampaign,
+                    [updatedOrder.customer.name, orderIdShort, status]
+                ).catch(err => console.error('Failed to send Order Status Change WhatsApp:', err));
+            }
+        } catch (e) {
+            console.error('Failed to initialize WhatsApp Status Change flow:', e);
+        }
         
         if (updatedOrder.customer.fcmToken) {
             try {
