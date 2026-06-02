@@ -161,7 +161,7 @@ const runTest = async () => {
         const statuses = ['Packed', 'Shipped', 'Out for Delivery', 'Delivered'];
         for (const status of statuses) {
             console.log(`Admin updating order status to: ${status}`);
-            await updateOrderStatusService(order._id, status);
+            await updateOrderStatusService(order._id, status, null, status === 'Delivered' ? 'Cash' : null);
         }
 
         const finalOrder = await Order.findById(order._id);

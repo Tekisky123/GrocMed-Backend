@@ -237,3 +237,6 @@
 [2026-05-29T12:06:02.961Z] [API-TRAFFIC] POST /api/admin/createAdmin | Status: 201 | IP: ::1
 [2026-05-29T12:06:16.934Z] [API-TRAFFIC] POST /api/admin/loginAdmin | Status: 200 | IP: ::1
 [2026-05-29T12:06:43.534Z] [API-TRAFFIC] POST /api/admin/loginAdmin | Status: 200 | IP: ::1
+[2026-06-02T10:13:30.808Z] [INVENTORY] Stock reversed back into shelf for Order [6a1eacca96c699923a316a2b]. Status: Cancelled
+[2026-06-02T10:13:31.572Z] [INVENTORY] Stock reversed back into shelf for Order [6a1eaccb96c699923a316a6a]. Status: Returned
+[2026-06-02T10:13:46.740Z] [FINANCE] COD Payment collected via Cash for Order [6a1eacd84939c335fa6d65a9]. Status set to Paid.

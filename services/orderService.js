@@ -326,19 +326,22 @@ export const updateOrderStatusService = async (orderId, status, deliveryPartnerI
         const customerBody = `Your order #${updatedOrder._id.toString().slice(-6)} is now ${status}`;
 
         // Trigger WhatsApp Order Status Change Notification
-        try {
-            const statusCampaign = process.env.AISENSY_CAMPAIGN_ORDER_STATUS_CHANGED || 'order_status_changed';
-            if (updatedOrder.customer.phone) {
-                const orderIdShort = updatedOrder._id.toString().slice(-8).toUpperCase();
-                sendWhatsAppMessage(
-                    updatedOrder.customer.phone,
-                    updatedOrder.customer.name,
-                    statusCampaign,
-                    [updatedOrder.customer.name, orderIdShort, status]
-                ).catch(err => console.error('Failed to send Order Status Change WhatsApp:', err));
+        const allowedWhatsAppStatuses = ['Placed', 'Out for Delivery', 'Delivered'];
+        if (allowedWhatsAppStatuses.includes(status)) {
+            try {
+                const statusCampaign = process.env.AISENSY_CAMPAIGN_ORDER_STATUS_CHANGED || 'order_status_changed';
+                if (updatedOrder.customer.phone) {
+                    const orderIdShort = updatedOrder._id.toString().slice(-8).toUpperCase();
+                    sendWhatsAppMessage(
+                        updatedOrder.customer.phone,
+                        updatedOrder.customer.name,
+                        statusCampaign,
+                        [updatedOrder.customer.name, orderIdShort, status]
+                    ).catch(err => console.error('Failed to send Order Status Change WhatsApp:', err));
+                }
+            } catch (e) {
+                console.error('Failed to initialize WhatsApp Status Change flow:', e);
             }
-        } catch (e) {
-            console.error('Failed to initialize WhatsApp Status Change flow:', e);
         }
         
         if (updatedOrder.customer.fcmToken) {
