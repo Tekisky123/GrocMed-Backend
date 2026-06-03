@@ -36,7 +36,7 @@ export const getOrderById = async (req, res, next) => {
 export const updateOrderStatus = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { status, deliveryPartnerId, codMethod, paymentScreenshot } = req.body;
+        const { status, deliveryPartnerId, codMethod, paymentScreenshot, cancellationReason } = req.body;
 
         if (!status) {
             return res.status(400).json({
@@ -54,7 +54,7 @@ export const updateOrderStatus = async (req, res, next) => {
             });
         }
 
-        const order = await updateOrderStatusService(id, status, deliveryPartnerId, codMethod, paymentScreenshot);
+        const order = await updateOrderStatusService(id, status, deliveryPartnerId, codMethod, paymentScreenshot, cancellationReason);
 
         res.status(200).json({
             success: true,

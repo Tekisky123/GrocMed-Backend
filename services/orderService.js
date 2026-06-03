@@ -6,6 +6,8 @@ import { sendPushNotification } from '../utils/notificationService.js';
 import { sendWhatsAppMessage } from '../utils/whatsappService.js';
 import { sysLog } from '../utils/logger.js';
 import AdminNotification from '../model/adminNotificationModel.js';
+import AccountLedger from '../model/accountLedgerModel.js';
+import JournalEntry from '../model/journalEntryModel.js';
 
 export const createOrderService = async (customerId, orderData) => {
     const { shippingAddress, paymentMethod, deliveryDate, deliverySlot } = orderData;
@@ -255,7 +257,7 @@ export const getOrderByIdForAdminService = async (orderId) => {
     return order;
 };
 
-export const updateOrderStatusService = async (orderId, status, deliveryPartnerId = null, codMethod = null, paymentScreenshot = null) => {
+export const updateOrderStatusService = async (orderId, status, deliveryPartnerId = null, codMethod = null, paymentScreenshot = null, cancellationReason = null) => {
     const validStatuses = ['Placed', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered', 'Cancelled', 'Returned'];
     if (!validStatuses.includes(status)) {
         throw new Error('Invalid order status');
@@ -311,6 +313,135 @@ export const updateOrderStatusService = async (orderId, status, deliveryPartnerI
         };
         order.paymentStatus = 'Paid';
         sysLog('FINANCE', `COD Payment collected via ${codMethod} for Order [${orderId}]. Status set to Paid.`);
+    }
+
+    // Cancellation Reason Tracking
+    if (status === 'Cancelled' || status === 'Returned') {
+        order.cancellationReason = cancellationReason || 'Customer Cancelled';
+    }
+
+    // Helper to find or create accounting ledgers dynamically
+    const findOrCreateLedger = async (name, group, subGroup) => {
+        let ledger = await AccountLedger.findOne({ name });
+        if (!ledger) {
+            ledger = await AccountLedger.create({ name, group, subGroup });
+        }
+        return ledger;
+    };
+
+    // Sales Journal Entry when order transitions to Delivered
+    if (status === 'Delivered' && !order.journalEntryId) {
+        try {
+            const salesLedger = await findOrCreateLedger('Sales Account', 'Revenue', 'Direct Revenues');
+            
+            let paymentLedgerName = 'Bank Account';
+            if (order.paymentMethod === 'COD' && codMethod === 'Cash') {
+                paymentLedgerName = 'Cash A/C';
+            }
+            const paymentLedger = await findOrCreateLedger(paymentLedgerName, 'Asset', paymentLedgerName === 'Cash A/C' ? 'Cash-in-hand' : 'Bank Accounts');
+
+            const totalAmount = order.totalAmount;
+            const cgst = order.cgstAmount || 0;
+            const sgst = order.sgstAmount || 0;
+            const igst = order.igstAmount || 0;
+            const taxTotal = cgst + sgst + igst;
+            const taxableTotal = totalAmount - taxTotal;
+
+            const journalEntries = [
+                { ledgerId: paymentLedger._id, debit: totalAmount, credit: 0 },
+                { ledgerId: salesLedger._id, debit: 0, credit: taxableTotal }
+            ];
+
+            if (cgst > 0) {
+                const cgstLedger = await findOrCreateLedger('Output CGST', 'Liability', 'Duties & Taxes');
+                journalEntries.push({ ledgerId: cgstLedger._id, debit: 0, credit: cgst });
+            }
+            if (sgst > 0) {
+                const sgstLedger = await findOrCreateLedger('Output SGST', 'Liability', 'Duties & Taxes');
+                journalEntries.push({ ledgerId: sgstLedger._id, debit: 0, credit: sgst });
+            }
+            if (igst > 0) {
+                const igstLedger = await findOrCreateLedger('Output IGST', 'Liability', 'Duties & Taxes');
+                journalEntries.push({ ledgerId: igstLedger._id, debit: 0, credit: igst });
+            }
+
+            const shortId = order._id.toString().slice(-8).toUpperCase();
+            const journal = await JournalEntry.create({
+                date: new Date(),
+                voucherNo: `SAL/${shortId}`,
+                type: 'Sales',
+                narration: `Sales invoice for Order #${shortId} - Customer: ${order.customer?.name || 'Customer'}`,
+                entries: journalEntries,
+                totalAmount: totalAmount
+            });
+
+            order.journalEntryId = journal._id;
+            sysLog('FINANCE', `Posted Sales Journal Entry SAL/${shortId} for Order [${orderId}].`);
+        } catch (err) {
+            console.error('Failed to post Sales Journal Entry:', err);
+        }
+    }
+
+    // Sales Return (Credit Note) Journal Entry when order is Cancelled or Returned
+    const wasSaleRecorded = previousStatus === 'Delivered' || order.paymentStatus === 'Paid' || order.journalEntryId;
+    if ((status === 'Cancelled' || status === 'Returned') && wasSaleRecorded && !order.returnJournalEntryId) {
+        try {
+            const salesReturnLedger = await findOrCreateLedger('Sales Return Account', 'Revenue', 'Direct Revenues');
+            
+            let paymentLedgerName = 'Bank Account';
+            if (order.paymentMethod === 'COD' && (order.codCollectionDetails?.method === 'Cash' || codMethod === 'Cash')) {
+                paymentLedgerName = 'Cash A/C';
+            }
+            const paymentLedger = await findOrCreateLedger(paymentLedgerName, 'Asset', paymentLedgerName === 'Cash A/C' ? 'Cash-in-hand' : 'Bank Accounts');
+
+            const totalAmount = order.totalAmount;
+            const cgst = order.cgstAmount || 0;
+            const sgst = order.sgstAmount || 0;
+            const igst = order.igstAmount || 0;
+            const taxTotal = cgst + sgst + igst;
+            const taxableTotal = totalAmount - taxTotal;
+
+            const journalEntries = [
+                { ledgerId: salesReturnLedger._id, debit: taxableTotal, credit: 0 },
+                { ledgerId: paymentLedger._id, debit: 0, credit: totalAmount }
+            ];
+
+            if (cgst > 0) {
+                const cgstLedger = await findOrCreateLedger('Output CGST', 'Liability', 'Duties & Taxes');
+                journalEntries.push({ ledgerId: cgstLedger._id, debit: cgst, credit: 0 });
+            }
+            if (sgst > 0) {
+                const sgstLedger = await findOrCreateLedger('Output SGST', 'Liability', 'Duties & Taxes');
+                journalEntries.push({ ledgerId: sgstLedger._id, debit: sgst, credit: 0 });
+            }
+            if (igst > 0) {
+                const igstLedger = await findOrCreateLedger('Output IGST', 'Liability', 'Duties & Taxes');
+                journalEntries.push({ ledgerId: igstLedger._id, debit: igst, credit: 0 });
+            }
+
+            const shortId = order._id.toString().slice(-8).toUpperCase();
+            const reason = order.cancellationReason || 'Customer Cancelled';
+            const journal = await JournalEntry.create({
+                date: new Date(),
+                voucherNo: `CN/${shortId}`,
+                type: 'Sales',
+                narration: `Sales Return (Credit Note) for Order #${shortId} - Reason: ${reason}`,
+                entries: journalEntries,
+                totalAmount: totalAmount
+            });
+
+            order.returnJournalEntryId = journal._id;
+            
+            // Refund the customer payment
+            if (order.paymentStatus === 'Paid') {
+                order.paymentStatus = 'Refunded';
+                order.refundStatus = 'Pending';
+            }
+            
+            sysLog('FINANCE', `Posted Sales Return (Credit Note) CN/${shortId} for Order [${orderId}].`);
+        } catch (err) {
+            console.error('Failed to post Sales Return (Credit Note) Journal Entry:', err);
+        }
     }
 
     await order.save();

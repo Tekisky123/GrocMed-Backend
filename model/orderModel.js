@@ -65,7 +65,7 @@ const orderSchema = new mongoose.Schema(
         },
         paymentStatus: {
             type: String,
-            enum: ['Pending', 'Paid', 'Failed'],
+            enum: ['Pending', 'Paid', 'Failed', 'Refunded'],
             default: 'Pending',
         },
         refundStatus: {
@@ -77,6 +77,19 @@ const orderSchema = new mongoose.Schema(
             type: String,
             enum: ['Placed', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered', 'Cancelled', 'Returned'],
             default: 'Placed',
+        },
+        cancellationReason: {
+            type: String,
+            enum: ['Customer Cancelled', 'Out of Stock After Billing', 'Delivery Failed', 'Wrong Product Ordered', 'None'],
+            default: 'None',
+        },
+        journalEntryId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'JournalEntry',
+        },
+        returnJournalEntryId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'JournalEntry',
         },
         trackingHistory: [
             {
