@@ -28,6 +28,10 @@ const settingSchema = new mongoose.Schema(
             type: Number,
             default: 50,
             required: true
+        },
+        paymentQrUrl: {
+            type: String,
+            default: null,
         }
     },
     {
