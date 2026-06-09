@@ -18,7 +18,7 @@ dotenv.config();
 // Generate JWT Token
 const generateToken = (id, role) => {
   return jwt.sign({ id, role: role || 'admin' }, process.env.TOKEN, {
-    expiresIn: '24h',
+    expiresIn: '7d',
   });
 };
 
