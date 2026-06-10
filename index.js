@@ -26,6 +26,7 @@ import statutoryRoutes from './routes/statutoryRoute.js';
 import gstRoutes from './routes/gstRoute.js';
 import accountingReportRoutes from './routes/reportsRoute.js';
 import pincodeRoutes from './routes/pincodeRoutes.js';
+import vendorRoutes from './routes/vendorRoutes.js';
 import deliverySlotRoutes from './routes/deliverySlotRoutes.js';
 
 import { errorHandler, notFoundHandler } from './middleware/errorMiddleware.js';
@@ -88,6 +89,7 @@ app.use('/api/settings', settingRoutes); // Public alias for frontend delivery e
 // --- Accounts & Finance APIs ---
 app.use('/api/admin/finance', authenticateToken, isSuperAdmin, financeRoutes);
 app.use('/api/admin/purchases', authenticateToken, purchaseInvoiceRoutes);
+app.use('/api/admin/vendors', authenticateToken, vendorRoutes);
 app.use('/api/admin/inventory', authenticateToken, inventoryAdjustmentRoutes);
 app.use('/api/admin/payroll', authenticateToken, isSuperAdmin, payrollRoutes);
 app.use('/api/admin/assets', authenticateToken, isSuperAdmin, fixedAssetRoutes);
