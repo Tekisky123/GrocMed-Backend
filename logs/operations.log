@@ -246,3 +246,9 @@
 [2026-06-02T11:09:33.082Z] [INVENTORY] Stock reversed back into shelf for Order [6a1eb9ec7b6070a2aee8c10b]. Status: Cancelled
 [2026-06-02T11:09:33.828Z] [INVENTORY] Stock reversed back into shelf for Order [6a1eb9ed7b6070a2aee8c14a]. Status: Returned
 [2026-06-02T11:09:33.977Z] [FINANCE] Posted Sales Return (Credit Note) CN/AEE8C14A for Order [6a1eb9ed7b6070a2aee8c14a].
+[2026-06-12T14:36:17.395Z] [API-TRAFFIC] POST /api/customer/register | Status: 201 | IP: ::1
+[2026-06-12T14:41:44.622Z] [API-TRAFFIC] POST /api/customer/register | Status: 400 | IP: ::1
+[2026-06-12T14:43:29.059Z] [API-TRAFFIC] POST /api/customer/register | Status: 400 | IP: ::1
+[2026-06-12T14:43:32.313Z] [API-TRAFFIC] POST /api/customer/register | Status: 400 | IP: ::1
+[2026-06-12T14:44:18.182Z] [API-TRAFFIC] POST /api/customer/register | Status: 400 | IP: ::1
+[2026-06-12T14:44:23.530Z] [API-TRAFFIC] POST /api/customer/register | Status: 201 | IP: ::1

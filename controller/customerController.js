@@ -14,26 +14,38 @@ import {
 import { uploadImageToS3 } from '../utils/s3Upload.js';
 
 export const registerCustomer = async (req, res) => {
+    console.log('[customerController.registerCustomer] Handling registration payload...');
     try {
         const customerData = { ...req.body };
 
         // Handle file uploads if they exist
         if (req.files) {
+            console.log('[customerController.registerCustomer] req.files has properties:', Object.keys(req.files));
             if (req.files.adhaarImage) {
+                console.log('[customerController.registerCustomer] Uploading Aadhaar image to S3...');
                 customerData.adhaarImage = await uploadImageToS3(req.files.adhaarImage[0], 'customers/adhaar');
+                console.log('[customerController.registerCustomer] Aadhaar S3 URL:', customerData.adhaarImage);
             }
             if (req.files.licenseImage) {
+                console.log('[customerController.registerCustomer] Uploading License image to S3...');
                 customerData.licenseImage = await uploadImageToS3(req.files.licenseImage[0], 'customers/license');
+                console.log('[customerController.registerCustomer] License S3 URL:', customerData.licenseImage);
             }
+        } else {
+            console.log('[customerController.registerCustomer] No files found in req.files.');
         }
 
+        console.log('[customerController.registerCustomer] Registering customer database record...');
         const customer = await registerCustomerService(customerData);
+        console.log('[customerController.registerCustomer] Registration successful! Created ID:', customer?._id || customer?.id);
+        
         res.status(201).json({
             success: true,
             message: 'Customer registered successfully',
             data: customer,
         });
     } catch (error) {
+        console.error('[customerController.registerCustomer] Registration failed with error:', error);
         res.status(400).json({
             success: false,
             message: error.message,

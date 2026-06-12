@@ -152,9 +152,29 @@ export const validateUpdateDeliveryPartner = (req, res, next) => {
 
 // Validate Customer Registration
 export const validateRegisterCustomer = (req, res, next) => {
+  console.log('[Backend Validation] Incoming customer registration request...');
+  console.log('[Backend Validation] Content-Type:', req.headers['content-type']);
+  console.log('[Backend Validation] Request Body keys:', Object.keys(req.body || {}));
+  console.log('[Backend Validation] Request Body:', { ...req.body, password: req.body.password ? '***' : undefined });
+  
+  if (req.files) {
+    console.log('[Backend Validation] Request Files parsed:', Object.keys(req.files));
+    Object.keys(req.files).forEach(fieldName => {
+      const fileInfo = req.files[fieldName][0];
+      console.log(`[Backend Validation] File details for field [${fieldName}]:`, {
+        originalname: fileInfo?.originalname,
+        mimetype: fileInfo?.mimetype,
+        size: fileInfo?.size
+      });
+    });
+  } else {
+    console.log('[Backend Validation] No files parsed (req.files is undefined/null).');
+  }
+
   const { name, phone, email, password, shopName, adhaar } = req.body;
 
   if (!name || !phone || !email || !password || !shopName || !adhaar) {
+    console.warn('[Backend Validation] Missing required fields. Body was:', { ...req.body, password: '***' });
     return res.status(400).json({
       success: false,
       message: 'All fields including Shop Name and Aadhaar are required',
@@ -163,6 +183,7 @@ export const validateRegisterCustomer = (req, res, next) => {
 
   // Check for images in req.files
   if (!req.files || !req.files.adhaarImage) {
+    console.warn('[Backend Validation] Missing mandatory Aadhaar image in req.files');
     return res.status(400).json({
       success: false,
       message: 'Aadhaar image is required',
