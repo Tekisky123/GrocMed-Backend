@@ -39,5 +39,10 @@ router.get('/exportProducts', authenticateToken, exportProductsBackupController)
 router.get('/exportOrders', authenticateToken, exportOrdersBackupController);
 router.get('/exportCustomers', authenticateToken, exportCustomersBackupController);
 
+// Database JSON Backup & Restore
+import { exportAllDataController, restoreAllDataController } from '../controller/backupController.js';
+router.get('/backup/export', authenticateToken, isSuperAdmin, exportAllDataController);
+router.post('/backup/restore', authenticateToken, isSuperAdmin, restoreAllDataController);
+
 export default router;
 
