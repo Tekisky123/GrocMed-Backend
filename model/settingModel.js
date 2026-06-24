@@ -29,6 +29,11 @@ const settingSchema = new mongoose.Schema(
             default: 50,
             required: true
         },
+        maxOrdersPerSlot: {
+            type: Number,
+            default: 20,
+            required: true
+        },
         paymentQrUrl: {
             type: String,
             default: null,

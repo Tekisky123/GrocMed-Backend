@@ -8,9 +8,42 @@ import { sysLog } from '../utils/logger.js';
 import AdminNotification from '../model/adminNotificationModel.js';
 import AccountLedger from '../model/accountLedgerModel.js';
 import JournalEntry from '../model/journalEntryModel.js';
+import moment from 'moment';
 
 export const createOrderService = async (customerId, orderData) => {
     const { shippingAddress, paymentMethod, deliveryDate, deliverySlot } = orderData;
+
+    // Validate delivery date and slot capacity
+    if (deliveryDate && deliverySlot) {
+        const targetDate = moment.utc(deliveryDate).startOf('day');
+        const start = targetDate.toDate();
+        const end = moment.utc(targetDate).endOf('day').toDate();
+
+        const settings = await Setting.findOne({ singletonKey: 'config' });
+        const maxOrders = settings?.maxOrdersPerDay || 50;
+        const maxOrdersPerSlot = settings?.maxOrdersPerSlot || 20;
+
+        // Count total orders for the day
+        const totalOrders = await Order.countDocuments({
+            deliveryDate: { $gte: start, $lte: end },
+            orderStatus: { $ne: 'Cancelled' }
+        });
+
+        if (totalOrders >= maxOrders) {
+            throw new Error('Delivery is fully booked for the selected date.');
+        }
+
+        // Count orders for this specific slot
+        const slotOrders = await Order.countDocuments({
+            deliveryDate: { $gte: start, $lte: end },
+            deliverySlot: deliverySlot,
+            orderStatus: { $ne: 'Cancelled' }
+        });
+
+        if (slotOrders >= maxOrdersPerSlot) {
+            throw new Error(`The delivery slot "${deliverySlot}" is fully booked for this date.`);
+        }
+    }
 
     // Get customer's cart
     const cart = await Cart.findOne({ customer: customerId }).populate('items.product');
@@ -257,7 +290,7 @@ export const getOrderByIdForAdminService = async (orderId) => {
     return order;
 };
 
-export const updateOrderStatusService = async (orderId, status, deliveryPartnerId = null, codMethod = null, paymentScreenshot = null, cancellationReason = null) => {
+export const updateOrderStatusService = async (orderId, status, deliveryPartnerId = null, codMethod = null, paymentScreenshot = null, cancellationReason = null, cashAmount = null, onlineAmount = null) => {
     const validStatuses = ['Placed', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered', 'Cancelled', 'Returned'];
     if (!validStatuses.includes(status)) {
         throw new Error('Invalid order status');
@@ -304,10 +337,12 @@ export const updateOrderStatusService = async (orderId, status, deliveryPartnerI
     // COD Collection Logic
     if (status === 'Delivered' && order.paymentMethod === 'COD') {
         if (!codMethod) {
-            throw new Error('Payment collection method (Cash/Online) is required for COD orders mark as Delivered.');
+            throw new Error('Payment collection method (Cash/Online/Split) is required for COD orders mark as Delivered.');
         }
         order.codCollectionDetails = {
             method: codMethod,
+            cashAmount: codMethod === 'Split' ? (Number(cashAmount) || 0) : 0,
+            onlineAmount: codMethod === 'Split' ? (Number(onlineAmount) || 0) : 0,
             collectedAt: new Date(),
             paymentScreenshot: paymentScreenshot
         };
@@ -334,12 +369,6 @@ export const updateOrderStatusService = async (orderId, status, deliveryPartnerI
         try {
             const salesLedger = await findOrCreateLedger('Sales Account', 'Revenue', 'Direct Revenues');
             
-            let paymentLedgerName = 'Bank Account';
-            if (order.paymentMethod === 'COD' && codMethod === 'Cash') {
-                paymentLedgerName = 'Cash A/C';
-            }
-            const paymentLedger = await findOrCreateLedger(paymentLedgerName, 'Asset', paymentLedgerName === 'Cash A/C' ? 'Cash-in-hand' : 'Bank Accounts');
-
             const totalAmount = order.totalAmount;
             const cgst = order.cgstAmount || 0;
             const sgst = order.sgstAmount || 0;
@@ -348,9 +377,26 @@ export const updateOrderStatusService = async (orderId, status, deliveryPartnerI
             const taxableTotal = totalAmount - taxTotal;
 
             const journalEntries = [
-                { ledgerId: paymentLedger._id, debit: totalAmount, credit: 0 },
                 { ledgerId: salesLedger._id, debit: 0, credit: taxableTotal }
             ];
+
+            if (order.paymentMethod === 'COD' && codMethod === 'Split') {
+                const cashLedger = await findOrCreateLedger('Cash A/C', 'Asset', 'Cash-in-hand');
+                const bankLedger = await findOrCreateLedger('Bank Account', 'Asset', 'Bank Accounts');
+                
+                const splitCashAmount = Number(cashAmount) || 0;
+                const splitOnlineAmount = Number(onlineAmount) || 0;
+
+                journalEntries.push({ ledgerId: cashLedger._id, debit: splitCashAmount, credit: 0 });
+                journalEntries.push({ ledgerId: bankLedger._id, debit: splitOnlineAmount, credit: 0 });
+            } else {
+                let paymentLedgerName = 'Bank Account';
+                if (order.paymentMethod === 'COD' && codMethod === 'Cash') {
+                    paymentLedgerName = 'Cash A/C';
+                }
+                const paymentLedger = await findOrCreateLedger(paymentLedgerName, 'Asset', paymentLedgerName === 'Cash A/C' ? 'Cash-in-hand' : 'Bank Accounts');
+                journalEntries.push({ ledgerId: paymentLedger._id, debit: totalAmount, credit: 0 });
+            }
 
             if (cgst > 0) {
                 const cgstLedger = await findOrCreateLedger('Output CGST', 'Liability', 'Duties & Taxes');
@@ -388,12 +434,6 @@ export const updateOrderStatusService = async (orderId, status, deliveryPartnerI
         try {
             const salesReturnLedger = await findOrCreateLedger('Sales Return Account', 'Revenue', 'Direct Revenues');
             
-            let paymentLedgerName = 'Bank Account';
-            if (order.paymentMethod === 'COD' && (order.codCollectionDetails?.method === 'Cash' || codMethod === 'Cash')) {
-                paymentLedgerName = 'Cash A/C';
-            }
-            const paymentLedger = await findOrCreateLedger(paymentLedgerName, 'Asset', paymentLedgerName === 'Cash A/C' ? 'Cash-in-hand' : 'Bank Accounts');
-
             const totalAmount = order.totalAmount;
             const cgst = order.cgstAmount || 0;
             const sgst = order.sgstAmount || 0;
@@ -402,9 +442,26 @@ export const updateOrderStatusService = async (orderId, status, deliveryPartnerI
             const taxableTotal = totalAmount - taxTotal;
 
             const journalEntries = [
-                { ledgerId: salesReturnLedger._id, debit: taxableTotal, credit: 0 },
-                { ledgerId: paymentLedger._id, debit: 0, credit: totalAmount }
+                { ledgerId: salesReturnLedger._id, debit: taxableTotal, credit: 0 }
             ];
+
+            if (order.paymentMethod === 'COD' && (order.codCollectionDetails?.method === 'Split' || codMethod === 'Split')) {
+                const cashLedger = await findOrCreateLedger('Cash A/C', 'Asset', 'Cash-in-hand');
+                const bankLedger = await findOrCreateLedger('Bank Account', 'Asset', 'Bank Accounts');
+                
+                const splitCashAmount = order.codCollectionDetails?.cashAmount || 0;
+                const splitOnlineAmount = order.codCollectionDetails?.onlineAmount || 0;
+
+                journalEntries.push({ ledgerId: cashLedger._id, debit: 0, credit: splitCashAmount });
+                journalEntries.push({ ledgerId: bankLedger._id, debit: 0, credit: splitOnlineAmount });
+            } else {
+                let paymentLedgerName = 'Bank Account';
+                if (order.paymentMethod === 'COD' && (order.codCollectionDetails?.method === 'Cash' || codMethod === 'Cash')) {
+                    paymentLedgerName = 'Cash A/C';
+                }
+                const paymentLedger = await findOrCreateLedger(paymentLedgerName, 'Asset', paymentLedgerName === 'Cash A/C' ? 'Cash-in-hand' : 'Bank Accounts');
+                journalEntries.push({ ledgerId: paymentLedger._id, debit: 0, credit: totalAmount });
+            }
 
             if (cgst > 0) {
                 const cgstLedger = await findOrCreateLedger('Output CGST', 'Liability', 'Duties & Taxes');

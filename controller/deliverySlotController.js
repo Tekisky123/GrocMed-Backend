@@ -47,33 +47,71 @@ export const deleteSlot = async (req, res, next) => {
 export const checkAvailability = async (req, res, next) => {
     try {
         const { date } = req.query; // Format: YYYY-MM-DD
-        const targetDate = date ? moment(date).startOf('day') : moment().startOf('day');
+        const targetDate = date ? moment.utc(date).startOf('day') : moment.utc().startOf('day');
         
         // 1. Get settings
         const settings = await Setting.findOne({ singletonKey: 'config' });
         const maxOrders = settings?.maxOrdersPerDay || 50;
+        const maxOrdersPerSlot = settings?.maxOrdersPerSlot || 20;
 
-        // 2. Count orders for that date
+        // 2. Count orders for that date (scheduled for delivery on targetDate)
         const start = targetDate.toDate();
-        const end = moment(targetDate).endOf('day').toDate();
+        const end = moment.utc(targetDate).endOf('day').toDate();
         
-        const orderCount = await Order.countDocuments({
-            createdAt: { $gte: start, $lte: end },
+        const totalOrderCount = await Order.countDocuments({
+            deliveryDate: { $gte: start, $lte: end },
             orderStatus: { $ne: 'Cancelled' }
         });
-
-        const isFull = orderCount >= maxOrders;
 
         // 3. Get active slots
         const slots = await DeliverySlot.find({ isActive: true }).sort({ displayOrder: 1 });
 
+        // Calculate count of orders for each slot on this date
+        const slotOrders = await Order.aggregate([
+            {
+                $match: {
+                    deliveryDate: { $gte: start, $lte: end },
+                    orderStatus: { $ne: 'Cancelled' }
+                }
+            },
+            {
+                $group: {
+                    _id: "$deliverySlot",
+                    count: { $sum: 1 }
+                }
+            }
+        ]);
+
+        const slotCountMap = {};
+        slotOrders.forEach(item => {
+            if (item._id) {
+                slotCountMap[item._id] = item.count;
+            }
+        });
+
+        // Add availability info to each slot
+        const availableSlotsWithCapacity = slots.map(slot => {
+            const currentOrdersForSlot = slotCountMap[slot.name] || 0;
+            const isSlotFull = currentOrdersForSlot >= maxOrdersPerSlot;
+            return {
+                ...slot.toObject(),
+                currentOrders: currentOrdersForSlot,
+                maxOrders: maxOrdersPerSlot,
+                isFull: isSlotFull
+            };
+        });
+
+        // The day is full if the total day orders >= maxOrders OR if all active slots are full
+        const allSlotsFull = availableSlotsWithCapacity.length > 0 && availableSlotsWithCapacity.every(slot => slot.isFull);
+        const dayIsFull = (totalOrderCount >= maxOrders) || allSlotsFull;
+
         res.status(200).json({
             success: true,
             data: {
-                isFull,
+                isFull: dayIsFull,
                 maxOrders,
-                currentOrders: orderCount,
-                availableSlots: slots,
+                currentOrders: totalOrderCount,
+                availableSlots: availableSlotsWithCapacity,
                 date: targetDate.format('YYYY-MM-DD')
             }
         });

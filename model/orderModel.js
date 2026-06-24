@@ -99,7 +99,9 @@ const orderSchema = new mongoose.Schema(
             }
         ],
         codCollectionDetails: {
-            method: { type: String, enum: ['Cash', 'Online', 'None'], default: 'None' },
+            method: { type: String, enum: ['Cash', 'Online', 'Split', 'None'], default: 'None' },
+            cashAmount: { type: Number, default: 0 },
+            onlineAmount: { type: Number, default: 0 },
             collectedAt: { type: Date },
             paymentScreenshot: { type: String } // URL to the uploaded screenshot
         },

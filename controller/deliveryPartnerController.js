@@ -209,7 +209,7 @@ import { uploadImageToS3 } from '../utils/s3Upload.js';
 export const updateOrderStatusWithScreenshot = async (req, res) => {
     try {
         const { id } = req.params;
-        const { status, codMethod, cancellationReason } = req.body;
+        const { status, codMethod, cashAmount, onlineAmount, cancellationReason } = req.body;
         const partnerId = req.deliveryPartner?._id;
 
         if (!status) {
@@ -222,7 +222,7 @@ export const updateOrderStatusWithScreenshot = async (req, res) => {
             return res.status(403).json({ success: false, message: 'Unauthorized: You can only update orders assigned to you.' });
         }
 
-        const order = await updateOrderStatusService(id, status, partnerId, codMethod, null, cancellationReason);
+        const order = await updateOrderStatusService(id, status, partnerId, codMethod, null, cancellationReason, cashAmount, onlineAmount);
 
         res.status(200).json({
             success: true,
