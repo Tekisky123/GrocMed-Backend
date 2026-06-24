@@ -61,7 +61,7 @@ export const exportAllDataController = async (req, res, next) => {
     
     const isPasswordValid = await verifyAdminPassword(req.admin._id, password);
     if (!isPasswordValid) {
-      return res.status(401).json({ success: false, message: 'Incorrect password' });
+      return res.status(403).json({ success: false, message: 'Incorrect password' });
     }
 
     const backup = {
@@ -86,7 +86,7 @@ export const restoreAllDataController = async (req, res, next) => {
 
     const isPasswordValid = await verifyAdminPassword(req.admin._id, password);
     if (!isPasswordValid) {
-      return res.status(401).json({ success: false, message: 'Incorrect password' });
+      return res.status(403).json({ success: false, message: 'Incorrect password' });
     }
     
     if (!data) {
