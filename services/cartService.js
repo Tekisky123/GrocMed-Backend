@@ -111,3 +111,13 @@ export const removeFromCartService = async (customerId, productId, packagingOpti
     await cart.save();
     return cart;
 };
+
+export const clearCartService = async (customerId) => {
+    let cart = await Cart.findOne({ customer: customerId });
+    if (!cart) {
+        return { items: [], totalAmount: 0 };
+    }
+    cart.items = [];
+    await cart.save();
+    return cart;
+};

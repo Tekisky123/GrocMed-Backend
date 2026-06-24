@@ -2,6 +2,7 @@ import {
     addToCartService,
     getCartService,
     removeFromCartService,
+    clearCartService,
 } from '../services/cartService.js';
 
 export const addToCart = async (req, res, next) => {
@@ -53,6 +54,21 @@ export const removeFromCart = async (req, res, next) => {
         res.status(200).json({
             success: true,
             message: 'Item removed from cart successfully',
+            data: cart,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const clearCart = async (req, res, next) => {
+    try {
+        const customerId = req.customer._id;
+        const cart = await clearCartService(customerId);
+
+        res.status(200).json({
+            success: true,
+            message: 'Cart cleared successfully',
             data: cart,
         });
     } catch (error) {
