@@ -41,7 +41,7 @@ router.get('/exportCustomers', authenticateToken, exportCustomersBackupControlle
 
 // Database JSON Backup & Restore
 import { exportAllDataController, restoreAllDataController } from '../controller/backupController.js';
-router.get('/backup/export', authenticateToken, isSuperAdmin, exportAllDataController);
+router.post('/backup/export', authenticateToken, isSuperAdmin, exportAllDataController);
 router.post('/backup/restore', authenticateToken, isSuperAdmin, restoreAllDataController);
 
 export default router;

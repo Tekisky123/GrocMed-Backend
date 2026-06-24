@@ -48,8 +48,22 @@ const modelsMap = {
   Vendor
 };
 
+const verifyAdminPassword = async (adminId, password) => {
+  if (!password) return false;
+  const admin = await Admin.findById(adminId);
+  if (!admin) return false;
+  return await admin.comparePassword(password);
+};
+
 export const exportAllDataController = async (req, res, next) => {
   try {
+    const { password } = req.body;
+    
+    const isPasswordValid = await verifyAdminPassword(req.admin._id, password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ success: false, message: 'Incorrect password' });
+    }
+
     const backup = {
       version: '1.0.0',
       backupDate: new Date().toISOString(),
@@ -60,8 +74,6 @@ export const exportAllDataController = async (req, res, next) => {
       backup.data[modelName] = await Model.find().lean();
     }
 
-    res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Content-Disposition', `attachment; filename="grocmed_db_backup_${new Date().toISOString().slice(0, 10).replace(/-/g, '')}.json"`);
     res.status(200).json(backup);
   } catch (error) {
     next(error);
@@ -70,7 +82,12 @@ export const exportAllDataController = async (req, res, next) => {
 
 export const restoreAllDataController = async (req, res, next) => {
   try {
-    const { data, version } = req.body;
+    const { data, version, password } = req.body;
+
+    const isPasswordValid = await verifyAdminPassword(req.admin._id, password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ success: false, message: 'Incorrect password' });
+    }
     
     if (!data) {
       return res.status(400).json({ success: false, message: 'Invalid backup file content: missing data' });
