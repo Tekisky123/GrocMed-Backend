@@ -47,7 +47,11 @@ export const deleteSlot = async (req, res, next) => {
 export const checkAvailability = async (req, res, next) => {
     try {
         const { date } = req.query; // Format: YYYY-MM-DD
-        const targetDate = date ? moment.utc(date).startOf('day') : moment.utc().startOf('day');
+        const currentIST = moment().utcOffset("+05:30");
+        const todayISTStr = currentIST.format('YYYY-MM-DD');
+
+        const targetDateStr = date || todayISTStr;
+        const targetDate = moment.utc(targetDateStr).startOf('day');
         
         // 1. Get settings
         const settings = await Setting.findOne({ singletonKey: 'config' });
@@ -101,8 +105,17 @@ export const checkAvailability = async (req, res, next) => {
             };
         });
 
-        // The day is full if the total day orders >= maxOrders OR if all active slots are full
-        const allSlotsFull = availableSlotsWithCapacity.length > 0 && availableSlotsWithCapacity.every(slot => slot.isFull);
+        // Filter out passed slots for today
+        let finalAvailableSlots = availableSlotsWithCapacity;
+        if (targetDateStr === todayISTStr) {
+            const currentTimeStr = currentIST.format('HH:mm');
+            finalAvailableSlots = availableSlotsWithCapacity.filter(slot => {
+                return slot.startTime > currentTimeStr;
+            });
+        }
+
+        // The day is full if the total day orders >= maxOrders OR if all active slots are full/passed
+        const allSlotsFull = slots.length > 0 && (finalAvailableSlots.length === 0 || finalAvailableSlots.every(slot => slot.isFull));
         const dayIsFull = (totalOrderCount >= maxOrders) || allSlotsFull;
 
         res.status(200).json({
@@ -111,7 +124,7 @@ export const checkAvailability = async (req, res, next) => {
                 isFull: dayIsFull,
                 maxOrders,
                 currentOrders: totalOrderCount,
-                availableSlots: availableSlotsWithCapacity,
+                availableSlots: finalAvailableSlots,
                 date: targetDate.format('YYYY-MM-DD')
             }
         });

@@ -2,6 +2,7 @@ import Order from '../model/orderModel.js';
 import Cart from '../model/cartModel.js';
 import Product from '../model/productModel.js';
 import Setting from '../model/settingModel.js';
+import DeliverySlot from '../model/deliverySlotModel.js';
 import { sendPushNotification } from '../utils/notificationService.js';
 import { sendWhatsAppMessage } from '../utils/whatsappService.js';
 import { sysLog } from '../utils/logger.js';
@@ -18,6 +19,21 @@ export const createOrderService = async (customerId, orderData) => {
         const targetDate = moment.utc(deliveryDate).startOf('day');
         const start = targetDate.toDate();
         const end = moment.utc(targetDate).endOf('day').toDate();
+
+        // Check if slot has already passed for today (IST time)
+        const currentIST = moment().utcOffset("+05:30");
+        const todayISTStr = currentIST.format('YYYY-MM-DD');
+        const targetDateStr = moment.utc(deliveryDate).format('YYYY-MM-DD');
+
+        if (targetDateStr === todayISTStr) {
+            const slotModel = await DeliverySlot.findOne({ name: deliverySlot });
+            if (slotModel) {
+                const currentTimeStr = currentIST.format('HH:mm');
+                if (slotModel.startTime <= currentTimeStr) {
+                    throw new Error(`The delivery slot "${deliverySlot}" has already passed for today.`);
+                }
+            }
+        }
 
         const settings = await Setting.findOne({ singletonKey: 'config' });
         const maxOrders = settings?.maxOrdersPerDay || 50;
