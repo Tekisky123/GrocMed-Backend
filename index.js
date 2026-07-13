@@ -41,7 +41,7 @@ const app = express();
 const allowedOrigins = [
   'https://grocmed.com',
   "https://www.grocmed.com",
-  "https://groc-med-frontend-admin.vercel.app",
+  "https://api.grocmed.com",
   'http://localhost:8081',   // Expo Web development
   'http://localhost:8082',  // Expo Web development
   'http://localhost:5173',   // React Frontend
