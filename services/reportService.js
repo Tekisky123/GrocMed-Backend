@@ -17,7 +17,7 @@ export const generateSalesReportService = async () => {
 
         // Fetch all data in parallel for better performance
         const [orders, customers, products, deliveryPartners] = await Promise.all([
-            Order.find({}).populate('customer', 'name phone email').populate('deliveryPartner', 'name').sort({ createdAt: -1 }),
+            Order.find({}).populate('customer', 'name phone email shopName').populate('deliveryPartner', 'name').sort({ createdAt: -1 }),
             Customer.find({}).sort({ createdAt: -1 }),
             Product.find({}).sort({ createdAt: -1 }),
             DeliveryPartner.find({}).sort({ createdAt: -1 })

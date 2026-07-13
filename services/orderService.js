@@ -290,7 +290,7 @@ export const trackOrderService = async (orderId, customerId) => {
 
 export const getAllOrdersService = async () => {
     const orders = await Order.find({})
-        .populate('customer', 'name phone email')
+        .populate('customer', 'name phone email shopName')
         .populate('deliveryPartner', 'name phone email')
         .sort({ createdAt: -1 });
     return orders;
@@ -298,7 +298,7 @@ export const getAllOrdersService = async () => {
 
 export const getOrderByIdForAdminService = async (orderId) => {
     const order = await Order.findById(orderId)
-        .populate('customer', 'name phone email')
+        .populate('customer', 'name phone email shopName')
         .populate('deliveryPartner', 'name phone email');
     if (!order) {
         throw new Error('Order not found');
@@ -521,7 +521,7 @@ export const updateOrderStatusService = async (orderId, status, deliveryPartnerI
 
     // Re-populate for comprehensive return
     const updatedOrder = await Order.findById(orderId)
-        .populate('customer', 'name phone email fcmToken')
+        .populate('customer', 'name phone email fcmToken shopName')
         .populate('deliveryPartner', 'name phone email fcmToken');
 
     // Send Push & Save In-App Notification to Customer
@@ -633,7 +633,7 @@ export const searchOrdersService = async (query) => {
     }
 
     const orders = await Order.find(searchCriteria)
-        .populate('customer', 'name phone email')
+        .populate('customer', 'name phone email shopName')
         .populate('deliveryPartner', 'name phone email')
         .sort({ createdAt: -1 });
 

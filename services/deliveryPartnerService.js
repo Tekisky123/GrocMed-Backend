@@ -146,7 +146,7 @@ import Order from '../model/orderModel.js';
 
 export const getAssignedOrdersService = async (partnerId) => {
     const orders = await Order.find({ deliveryPartner: partnerId })
-        .populate('customer', 'name phone email')
+        .populate('customer', 'name phone email shopName')
         .sort({ updatedAt: -1 });
     return orders;
 };
