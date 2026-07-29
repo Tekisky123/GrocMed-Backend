@@ -26,6 +26,32 @@ export const createProductService = async (productData, images, adminId) => {
 
 
 
+  // Normalize and auto-create brand
+  let productBrand = brand || '';
+  if (brand && brand.trim()) {
+    const normalizedBrand = brand.trim().split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+    const Brand = (await import('../model/brandModel.js')).default;
+    const brandDoc = await Brand.findOneAndUpdate(
+      { name: { $regex: new RegExp(`^${normalizedBrand}$`, 'i') } },
+      { $setOnInsert: { name: normalizedBrand, isActive: true } },
+      { upsert: true, new: true }
+    );
+    productBrand = brandDoc.name;
+  }
+
+  // Normalize and auto-create category
+  let productCategory = category || '';
+  if (category && category.trim()) {
+    const normalizedCategory = category.trim();
+    const Category = (await import('../model/categoryModel.js')).default;
+    const catDoc = await Category.findOneAndUpdate(
+      { name: { $regex: new RegExp(`^${normalizedCategory}$`, 'i') } },
+      { $setOnInsert: { name: normalizedCategory, isActive: true } },
+      { upsert: true, new: true }
+    );
+    productCategory = catDoc.name;
+  }
+
   // Upload images to S3
   let imageUrls = [];
   if (images && images.length > 0) {
@@ -35,8 +61,8 @@ export const createProductService = async (productData, images, adminId) => {
   const product = new Product({
     name,
     description,
-    brand,
-    category,
+    brand: productBrand,
+    category: productCategory,
     unitType,
     perUnitWeightVolume,
     unitsPerUnitType: unitsPerUnitType || 1,
@@ -61,12 +87,31 @@ export const createProductService = async (productData, images, adminId) => {
   return savedProduct;
 };
 
-export const getAllProductsService = async (isAdmin = false) => {
+export const getAllProductsService = async (isAdmin = false, page = null, limit = null) => {
   let query = {};
 
   // For non-admin users, only return active products
   if (!isAdmin) {
     query.isActive = true;
+  }
+
+  if (page && limit) {
+    const skip = (page - 1) * limit;
+    
+    // Exclude heavy fields like description for catalog lists to reduce payload size
+    const projection = !isAdmin ? '-description -createdBy' : '';
+
+    const products = await Product.find(query, projection)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Product.countDocuments(query);
+    return {
+      products,
+      total,
+      totalPages: Math.ceil(total / limit)
+    };
   }
 
   const products = await Product.find(query)
@@ -131,14 +176,40 @@ export const updateProductService = async (productId, updateData, images, adminI
     imageUrls = [...imageUrls, ...newImageUrls];
   }
 
+  // Normalize and auto-create brand
+  let productBrand = brand;
+  if (brand && brand.trim()) {
+    const normalizedBrand = brand.trim().split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+    const Brand = (await import('../model/brandModel.js')).default;
+    const brandDoc = await Brand.findOneAndUpdate(
+      { name: { $regex: new RegExp(`^${normalizedBrand}$`, 'i') } },
+      { $setOnInsert: { name: normalizedBrand, isActive: true } },
+      { upsert: true, new: true }
+    );
+    productBrand = brandDoc.name;
+  }
+
+  // Normalize and auto-create category
+  let productCategory = category;
+  if (category && category.trim()) {
+    const normalizedCategory = category.trim();
+    const Category = (await import('../model/categoryModel.js')).default;
+    const catDoc = await Category.findOneAndUpdate(
+      { name: { $regex: new RegExp(`^${normalizedCategory}$`, 'i') } },
+      { $setOnInsert: { name: normalizedCategory, isActive: true } },
+      { upsert: true, new: true }
+    );
+    productCategory = catDoc.name;
+  }
+
   // Update product
   const updatedProduct = await Product.findByIdAndUpdate(
     productId,
     {
       ...(name && { name }),
       ...(description && { description }),
-      ...(brand && { brand }),
-      ...(category && { category }),
+      ...(brand && { brand: productBrand }),
+      ...(category && { category: productCategory }),
       ...(unitType && { unitType }),
       ...(perUnitWeightVolume && { perUnitWeightVolume }),
       ...(unitsPerUnitType !== undefined && { unitsPerUnitType }),

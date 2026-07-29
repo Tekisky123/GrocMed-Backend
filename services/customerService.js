@@ -66,7 +66,7 @@ export const loginCustomerService = async (credentials) => {
     }
 
     const token = jwt.sign({ id: customer._id, role: 'customer' }, process.env.TOKEN, {
-        expiresIn: '7d',
+        expiresIn: '60d',
     });
 
     customer.password = undefined;

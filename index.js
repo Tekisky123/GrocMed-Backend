@@ -7,6 +7,7 @@ import productRoutes from './routes/productRoutes.js';
 import deliveryPartnerRoutes from './routes/deliveryPartnerRoutes.js';
 import customerRoutes from './routes/customerRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
+import brandRoutes from './routes/brandRoutes.js';
 import cartRoutes from './routes/cartRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
 import adminOrderRoutes from './routes/adminOrderRoutes.js';
@@ -99,6 +100,7 @@ app.use('/api/admin/accounting-reports', authenticateToken, isSuperAdmin, accoun
 
 app.use('/api/customer', customerRoutes);
 app.use('/api/category', categoryRoutes);
+app.use('/api/brand', brandRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/order', orderRoutes);
 

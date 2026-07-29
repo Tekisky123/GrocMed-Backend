@@ -84,7 +84,23 @@ export const createProductController = async (req, res, next) => {
 
 export const getAllProductsController = async (req, res, next) => {
   try {
-    // Public route - only return active products
+    const page = req.query.page ? parseInt(req.query.page) : null;
+    const limit = req.query.limit ? parseInt(req.query.limit) : null;
+
+    if (page && limit) {
+      const { products, total, totalPages } = await getAllProductsService(false, page, limit);
+      return res.status(200).json({
+        success: true,
+        message: 'Products retrieved successfully',
+        count: products.length,
+        total,
+        page,
+        totalPages,
+        data: products,
+      });
+    }
+
+    // Public route - only return active products without pagination
     const products = await getAllProductsService(false);
 
     res.status(200).json({

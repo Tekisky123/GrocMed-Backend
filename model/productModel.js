@@ -121,7 +121,6 @@ const productSchema = new mongoose.Schema(
     },
     gstRate: {
       type: Number,
-      enum: [0, 5, 12, 18, 28],
       default: 0,
     },
     // Dates
@@ -161,6 +160,10 @@ const productSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+// Define composite indexes for query performance
+productSchema.index({ isActive: 1, createdAt: -1 });
+productSchema.index({ category: 1, isActive: 1 });
 
 const Product = mongoose.model('Product', productSchema);
 

@@ -124,7 +124,7 @@ export const loginDeliveryPartnerService = async (credentials) => {
     const token = jwt.sign(
         { id: partner._id, role: 'delivery_partner', email: partner.email },
         process.env.TOKEN,
-        { expiresIn: '7d' }
+        { expiresIn: '60d' }
     );
 
     partner.password = undefined;
