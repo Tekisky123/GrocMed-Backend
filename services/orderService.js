@@ -432,7 +432,7 @@ export const updateOrderStatusService = async (orderId, status, deliveryPartnerI
                 date: new Date(),
                 voucherNo: `SAL/${shortId}`,
                 type: 'Sales',
-                narration: `Sales invoice for Order #${shortId} - Customer: ${order.customer?.name || 'Customer'}`,
+                narration: `Sales invoice for Order #${shortId} - Customer: ${order.customer?.shopName ? `${order.customer.shopName} (${order.customer?.name || 'Customer'})` : (order.customer?.name || 'Customer')}`,
                 entries: journalEntries,
                 totalAmount: totalAmount
             });

@@ -297,3 +297,5 @@
 [2026-07-29T10:02:56.412Z] [API-TRAFFIC] PUT /api/brand/admin/6a69cb735bc5cd1530731b61 | Status: 200 | IP: ::1
 [2026-07-29T10:02:58.408Z] [API-TRAFFIC] PUT /api/brand/admin/6a69cb735bc5cd1530731b61 | Status: 200 | IP: ::1
 [2026-07-29T10:02:59.186Z] [API-TRAFFIC] PUT /api/brand/admin/6a69cb735bc5cd1530731b61 | Status: 200 | IP: ::1
+[2026-08-03T12:57:14.342Z] [API-TRAFFIC] GET / | Status: 404 | IP: ::1
+[2026-08-03T12:57:14.382Z] [API-TRAFFIC] GET /favicon.ico | Status: 404 | IP: ::1
