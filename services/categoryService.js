@@ -11,7 +11,7 @@ export const getAllCategoriesService = async () => {
             category: { $regex: new RegExp(`^${cat.name}$`, 'i') }, 
             isActive: true 
         });
-        let image = cat.image;
+        let image = cat.image || null;
         if (!image) {
             const firstProduct = await Product.findOne({ 
                 category: { $regex: new RegExp(`^${cat.name}$`, 'i') }, 
