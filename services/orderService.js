@@ -75,6 +75,12 @@ export const createOrderService = async (customerId, orderData) => {
         deliveryCharge: 50 
     };
 
+    // Restrict orders below minimum order value
+    const minOrderValue = settings.minOrderValue || 0;
+    if (minOrderValue > 0 && subtotal < minOrderValue) {
+        throw new Error(`Minimum order amount is ₹${minOrderValue}. Your current cart subtotal is ₹${subtotal}. Please add more items to place an order.`);
+    }
+
     // Setup business home state
     const BUSINESS_HOME_STATE = process.env.STORE_STATE || 'TS';
     let isInterState = false;
