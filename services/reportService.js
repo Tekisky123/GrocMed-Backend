@@ -8,16 +8,32 @@ import DeliveryPartner from '../model/deliveryPartnerModel.js';
  * Generate comprehensive sales report in Excel format
  * Creates a multi-sheet workbook with orders, revenue, products, customers, delivery partners, and sales analytics
  */
-export const generateSalesReportService = async () => {
+export const generateSalesReportService = async (startDate, endDate) => {
     try {
         // Create a new workbook
         const workbook = new ExcelJS.Workbook();
         workbook.creator = 'GrocMed Admin';
         workbook.created = new Date();
 
+        // Build order filter query for optional date range
+        const orderQuery = {};
+        if (startDate || endDate) {
+            orderQuery.createdAt = {};
+            if (startDate) {
+                const sDate = new Date(startDate);
+                sDate.setHours(0, 0, 0, 0);
+                orderQuery.createdAt.$gte = sDate;
+            }
+            if (endDate) {
+                const eDate = new Date(endDate);
+                eDate.setHours(23, 59, 59, 999);
+                orderQuery.createdAt.$lte = eDate;
+            }
+        }
+
         // Fetch all data in parallel for better performance
         const [orders, customers, products, deliveryPartners] = await Promise.all([
-            Order.find({}).populate('customer', 'name phone email shopName').populate('deliveryPartner', 'name').sort({ createdAt: -1 }),
+            Order.find(orderQuery).populate('customer', 'name phone email shopName').populate('deliveryPartner', 'name').sort({ createdAt: -1 }),
             Customer.find({}).sort({ createdAt: -1 }),
             Product.find({}).sort({ createdAt: -1 }),
             DeliveryPartner.find({}).sort({ createdAt: -1 })
@@ -55,16 +71,16 @@ export const generateSalesReportService = async () => {
         // Add data
         orders.forEach(order => {
             ordersSheet.addRow({
-                orderId: order._id.toString(),
+                orderId: order._id ? order._id.toString() : 'N/A',
                 customerName: order.customer?.name || 'N/A',
                 phone: order.customer?.phone || 'N/A',
                 email: order.customer?.email || 'N/A',
-                orderDate: order.createdAt,
-                status: order.orderStatus,
-                paymentMethod: order.paymentMethod,
-                paymentStatus: order.paymentStatus,
-                totalAmount: order.totalAmount,
-                itemsCount: order.items.length,
+                orderDate: order.createdAt || new Date(),
+                status: order.orderStatus || 'N/A',
+                paymentMethod: order.paymentMethod || 'N/A',
+                paymentStatus: order.paymentStatus || 'N/A',
+                totalAmount: order.totalAmount || 0,
+                itemsCount: order.items?.length || 0,
                 deliveryPartner: order.deliveryPartner?.name || 'Not Assigned'
             });
         });
@@ -77,15 +93,15 @@ export const generateSalesReportService = async () => {
         const revenueSheet = workbook.addWorksheet('Revenue Summary');
 
         // Calculate revenue metrics
-        const totalRevenue = orders.filter(o => o.orderStatus !== 'Cancelled').reduce((sum, o) => sum + o.totalAmount, 0);
+        const totalRevenue = orders.filter(o => o.orderStatus !== 'Cancelled').reduce((sum, o) => sum + (o.totalAmount || 0), 0);
         const totalOrders = orders.length;
         const deliveredOrders = orders.filter(o => o.orderStatus === 'Delivered').length;
         const cancelledOrders = orders.filter(o => o.orderStatus === 'Cancelled').length;
         const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
         const codOrders = orders.filter(o => o.paymentMethod === 'COD').length;
         const onlineOrders = orders.filter(o => o.paymentMethod === 'Online').length;
-        const codRevenue = orders.filter(o => o.paymentMethod === 'COD' && o.orderStatus !== 'Cancelled').reduce((sum, o) => sum + o.totalAmount, 0);
-        const onlineRevenue = orders.filter(o => o.paymentMethod === 'Online' && o.orderStatus !== 'Cancelled').reduce((sum, o) => sum + o.totalAmount, 0);
+        const codRevenue = orders.filter(o => o.paymentMethod === 'COD' && o.orderStatus !== 'Cancelled').reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+        const onlineRevenue = orders.filter(o => o.paymentMethod === 'Online' && o.orderStatus !== 'Cancelled').reduce((sum, o) => sum + (o.totalAmount || 0), 0);
 
         // Add summary data
         revenueSheet.addRow(['REVENUE SUMMARY REPORT']);
@@ -142,15 +158,15 @@ export const generateSalesReportService = async () => {
         // Add product data
         products.forEach(product => {
             productsSheet.addRow({
-                productId: product._id.toString(),
-                name: product.name,
-                brand: product.brand,
-                category: product.category,
-                mrp: product.mrp,
-                offerPrice: product.offerPrice,
-                stock: product.stock,
-                unitType: product.unitType,
-                weightVolume: product.perUnitWeightVolume,
+                productId: product._id ? product._id.toString() : 'N/A',
+                name: product.name || 'N/A',
+                brand: product.brand || 'N/A',
+                category: product.category || 'N/A',
+                mrp: product.mrp || 0,
+                offerPrice: product.offerPrice || 0,
+                stock: product.stock || 0,
+                unitType: product.unitType || 'N/A',
+                weightVolume: product.perUnitWeightVolume || 'N/A',
                 status: product.isActive ? 'Active' : 'Inactive'
             });
         });
@@ -182,15 +198,18 @@ export const generateSalesReportService = async () => {
 
         // Calculate customer metrics
         customers.forEach(customer => {
-            const customerOrders = orders.filter(o => o.customer?._id?.toString() === customer._id.toString());
-            const totalSpent = customerOrders.filter(o => o.orderStatus !== 'Cancelled').reduce((sum, o) => sum + o.totalAmount, 0);
+            const customerOrders = orders.filter(o => {
+                const custId = o.customer?._id || o.customer;
+                return custId && custId.toString() === customer._id.toString();
+            });
+            const totalSpent = customerOrders.filter(o => o.orderStatus !== 'Cancelled').reduce((sum, o) => sum + (o.totalAmount || 0), 0);
 
             customersSheet.addRow({
-                customerId: customer._id.toString(),
-                name: customer.name,
-                email: customer.email,
-                phone: customer.phone,
-                regDate: customer.createdAt,
+                customerId: customer._id ? customer._id.toString() : 'N/A',
+                name: customer.name || 'N/A',
+                email: customer.email || 'N/A',
+                phone: customer.phone || 'N/A',
+                regDate: customer.createdAt || new Date(),
                 totalOrders: customerOrders.length,
                 totalSpent: totalSpent,
                 addresses: customer.addresses?.length || 0,
@@ -226,14 +245,14 @@ export const generateSalesReportService = async () => {
         // Add delivery partner data
         deliveryPartners.forEach(partner => {
             deliverySheet.addRow({
-                partnerId: partner._id.toString(),
-                name: partner.name,
-                email: partner.email,
-                phone: partner.phone,
-                vehicleType: partner.vehicleType,
-                vehicleNumber: partner.vehicleNumber,
-                licenseNumber: partner.licenseNumber,
-                status: partner.status,
+                partnerId: partner._id ? partner._id.toString() : 'N/A',
+                name: partner.name || 'N/A',
+                email: partner.email || 'N/A',
+                phone: partner.phone || 'N/A',
+                vehicleType: partner.vehicleType || 'N/A',
+                vehicleNumber: partner.vehicleNumber || 'N/A',
+                licenseNumber: partner.licenseNumber || 'N/A',
+                status: partner.status || 'N/A',
                 isActive: partner.isActive ? 'Yes' : 'No'
             });
         });
@@ -258,13 +277,16 @@ export const generateSalesReportService = async () => {
         // Group orders by date
         const salesByDate = {};
         orders.forEach(order => {
-            const dateKey = order.createdAt.toISOString().split('T')[0];
+            if (!order.createdAt) return;
+            const dateObj = new Date(order.createdAt);
+            if (isNaN(dateObj.getTime())) return;
+            const dateKey = dateObj.toISOString().split('T')[0];
             if (!salesByDate[dateKey]) {
                 salesByDate[dateKey] = { orders: [], revenue: 0 };
             }
             salesByDate[dateKey].orders.push(order);
             if (order.orderStatus !== 'Cancelled') {
-                salesByDate[dateKey].revenue += order.totalAmount;
+                salesByDate[dateKey].revenue += (order.totalAmount || 0);
             }
         });
 

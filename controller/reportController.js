@@ -6,13 +6,16 @@ import { generateSalesReportService } from '../services/reportService.js';
  */
 export const downloadSalesReport = async (req, res, next) => {
     try {
-        // Generate the Excel workbook
-        const workbook = await generateSalesReportService();
+        const { startDate, endDate } = req.query;
+
+        // Generate the Excel workbook with optional date range filters
+        const workbook = await generateSalesReportService(startDate, endDate);
 
         // Set response headers for file download
         const filename = `Sales_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
 
         // Write workbook to response stream
         await workbook.xlsx.write(res);

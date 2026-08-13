@@ -1,3 +1,4 @@
+import jwt from 'jsonwebtoken';
 import {
     registerCustomerService,
     loginCustomerService,
@@ -21,12 +22,12 @@ export const registerCustomer = async (req, res) => {
         // Handle file uploads if they exist
         if (req.files) {
             console.log('[customerController.registerCustomer] req.files has properties:', Object.keys(req.files));
-            if (req.files.adhaarImage) {
+            if (req.files.adhaarImage && req.files.adhaarImage[0]) {
                 console.log('[customerController.registerCustomer] Uploading Aadhaar image to S3...');
                 customerData.adhaarImage = await uploadImageToS3(req.files.adhaarImage[0], 'customers/adhaar');
                 console.log('[customerController.registerCustomer] Aadhaar S3 URL:', customerData.adhaarImage);
             }
-            if (req.files.licenseImage) {
+            if (req.files.licenseImage && req.files.licenseImage[0]) {
                 console.log('[customerController.registerCustomer] Uploading License image to S3...');
                 customerData.licenseImage = await uploadImageToS3(req.files.licenseImage[0], 'customers/license');
                 console.log('[customerController.registerCustomer] License S3 URL:', customerData.licenseImage);
@@ -39,9 +40,14 @@ export const registerCustomer = async (req, res) => {
         const customer = await registerCustomerService(customerData);
         console.log('[customerController.registerCustomer] Registration successful! Created ID:', customer?._id || customer?.id);
         
+        const token = jwt.sign({ id: customer._id, role: 'customer' }, process.env.TOKEN, {
+            expiresIn: '60d',
+        });
+
         res.status(201).json({
             success: true,
             message: 'Customer registered successfully',
+            token,
             data: customer,
         });
     } catch (error) {

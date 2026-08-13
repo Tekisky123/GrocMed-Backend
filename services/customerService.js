@@ -7,33 +7,38 @@ import AdminNotification from '../model/adminNotificationModel.js';
 export const registerCustomerService = async (customerData) => {
     const { name, phone, email, password, pan, adhaar, shopName, licenseNumber, adhaarImage, licenseImage } = customerData;
 
-    const existingCustomer = await Customer.findOne({ $or: [{ email }, { phone }] });
+    const cleanEmail = email ? email.trim().toLowerCase() : '';
+    const cleanPhone = phone ? phone.trim() : '';
+    const cleanPan = (pan && typeof pan === 'string' && pan.trim()) ? pan.trim() : undefined;
+    const cleanAdhaar = (adhaar && typeof adhaar === 'string' && adhaar.trim()) ? adhaar.trim() : undefined;
+
+    const existingCustomer = await Customer.findOne({ $or: [{ email: cleanEmail }, { phone: cleanPhone }] });
     if (existingCustomer) {
-        if (existingCustomer.email === email) throw new Error('Email already registered');
-        if (existingCustomer.phone === phone) throw new Error('Phone number already registered');
+        if (existingCustomer.email === cleanEmail) throw new Error('Email already registered');
+        if (existingCustomer.phone === cleanPhone) throw new Error('Phone number already registered');
     }
 
     // Check unique PAN/Adhaar if provided
-    if (pan) {
-        const panExists = await Customer.findOne({ pan });
+    if (cleanPan) {
+        const panExists = await Customer.findOne({ pan: cleanPan });
         if (panExists) throw new Error('PAN already registered');
     }
-    if (adhaar) {
-        const adhaarExists = await Customer.findOne({ adhaar });
+    if (cleanAdhaar) {
+        const adhaarExists = await Customer.findOne({ adhaar: cleanAdhaar });
         if (adhaarExists) throw new Error('Adhaar already registered');
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const customer = new Customer({
-        name,
-        phone,
-        email,
+        name: name ? name.trim() : name,
+        phone: cleanPhone,
+        email: cleanEmail,
         password: hashedPassword,
-        pan,
-        adhaar,
-        shopName,
-        licenseNumber,
+        pan: cleanPan,
+        adhaar: cleanAdhaar,
+        shopName: shopName ? shopName.trim() : shopName,
+        licenseNumber: licenseNumber ? licenseNumber.trim() : licenseNumber,
         adhaarImage,
         licenseImage
     });
