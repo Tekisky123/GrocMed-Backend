@@ -1,62 +1,82 @@
 import Category from '../model/categoryModel.js';
 import Product from '../model/productModel.js';
 import { uploadImageToS3, deleteImageFromS3 } from '../utils/s3Upload.js';
+import { cacheService } from '../utils/cacheService.js';
 
 export const getAllCategoriesService = async () => {
-    const categories = await Category.find({ isActive: true }).sort({ name: 1 });
-    const results = [];
-    
-    for (const cat of categories) {
-        const productCount = await Product.countDocuments({ 
-            category: { $regex: new RegExp(`^${cat.name}$`, 'i') }, 
-            isActive: true 
-        });
-        let image = cat.image || null;
-        if (!image) {
-            const firstProduct = await Product.findOne({ 
-                category: { $regex: new RegExp(`^${cat.name}$`, 'i') }, 
-                isActive: true 
-            }).select('images');
-            image = firstProduct?.images?.[0] || null;
-        }
-        results.push({
-            _id: cat._id,
-            name: cat.name,
-            image,
-            productCount
-        });
-    }
+    const cached = cacheService.get('categories_public');
+    if (cached) return cached;
+
+    const categories = await Category.find({ isActive: true }).sort({ name: 1 }).lean();
+    if (!categories || categories.length === 0) return [];
+
+    const results = await Promise.all(
+        categories.map(async (cat) => {
+            let image = cat.image || null;
+            const [productCount, firstProduct] = await Promise.all([
+                Product.countDocuments({
+                    category: { $regex: new RegExp(`^${cat.name}$`, 'i') },
+                    isActive: true
+                }),
+                !image ? Product.findOne({
+                    category: { $regex: new RegExp(`^${cat.name}$`, 'i') },
+                    isActive: true
+                }).select('images').lean() : null
+            ]);
+
+            if (!image && firstProduct?.images?.length) {
+                image = firstProduct.images[0];
+            }
+
+            return {
+                _id: cat._id,
+                name: cat.name,
+                image,
+                productCount
+            };
+        })
+    );
+
+    cacheService.set('categories_public', results, 120); // 2 min cache
     return results;
 };
 
 export const getProductsByCategoryService = async (category) => {
+    const cacheKey = `products_category_${category}`;
+    const cached = cacheService.get(cacheKey);
+    if (cached) return cached;
+
     const products = await Product.find({
         category: { $regex: new RegExp(`^${category}$`, 'i') }, // Case-insensitive exact match
         isActive: true
-    }).sort({ createdAt: -1 });
+    }).sort({ createdAt: -1 }).lean();
 
+    cacheService.set(cacheKey, products, 60);
     return products;
 };
 
 // Admin Services
 export const getAllCategoriesAdminService = async () => {
-    const categories = await Category.find({}).sort({ name: 1 });
-    const results = [];
+    const categories = await Category.find({}).sort({ name: 1 }).lean();
+    if (!categories || categories.length === 0) return [];
 
-    for (const cat of categories) {
-        const productCount = await Product.countDocuments({ 
-            category: { $regex: new RegExp(`^${cat.name}$`, 'i') } 
-        });
-        results.push({
-            _id: cat._id,
-            name: cat.name,
-            image: cat.image,
-            isActive: cat.isActive,
-            productCount,
-            createdAt: cat.createdAt,
-            updatedAt: cat.updatedAt
-        });
-    }
+    const results = await Promise.all(
+        categories.map(async (cat) => {
+            const productCount = await Product.countDocuments({
+                category: { $regex: new RegExp(`^${cat.name}$`, 'i') }
+            });
+            return {
+                _id: cat._id,
+                name: cat.name,
+                image: cat.image,
+                isActive: cat.isActive,
+                productCount,
+                createdAt: cat.createdAt,
+                updatedAt: cat.updatedAt
+            };
+        })
+    );
+
     return results;
 };
 
@@ -80,7 +100,9 @@ export const createCategoryService = async (categoryData, file) => {
         isActive: isActive !== undefined ? (isActive === 'true' || isActive === true) : true,
     });
 
-    return await category.save();
+    const saved = await category.save();
+    cacheService.clearPattern('categories');
+    return saved;
 };
 
 export const updateCategoryService = async (id, categoryData, file) => {
@@ -129,7 +151,9 @@ export const updateCategoryService = async (id, categoryData, file) => {
         category.image = await uploadImageToS3(file, 'categories');
     }
 
-    return await category.save();
+    const updated = await category.save();
+    cacheService.clearPattern('categories');
+    return updated;
 };
 
 export const deleteCategoryService = async (id) => {
@@ -148,5 +172,6 @@ export const deleteCategoryService = async (id) => {
     }
 
     await Category.findByIdAndDelete(id);
+    cacheService.clearPattern('categories');
     return { message: 'Category deleted successfully' };
 };

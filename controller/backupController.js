@@ -25,7 +25,8 @@ import {
   createAndUploadS3Backup, 
   listS3Backups, 
   restoreFromS3Backup, 
-  deleteS3Backup 
+  deleteS3Backup,
+  downloadAllS3ImagesZipService
 } from '../utils/s3Backup.js';
 
 const modelsMap = {
@@ -135,17 +136,24 @@ export const restoreAllDataController = async (req, res, next) => {
 
 export const exportS3BackupController = async (req, res, next) => {
   try {
-    const { password } = req.body;
+    const { password } = req.body || {};
     
-    const isPasswordValid = await verifyAdminPassword(req.admin._id, password);
-    if (!isPasswordValid) {
-      return res.status(403).json({ success: false, message: 'Incorrect password' });
+    if (password) {
+      const isPasswordValid = await verifyAdminPassword(req.admin._id, password);
+      if (!isPasswordValid) {
+        return res.status(403).json({ success: false, message: 'Incorrect password' });
+      }
     }
 
     const retentionDays = parseInt(process.env.BACKUP_RETENTION_DAYS || '30', 10);
     const backupResult = await createAndUploadS3Backup(retentionDays);
 
-    res.status(200).json(backupResult);
+    res.status(200).json({
+      success: true,
+      message: 'S3 database backup created successfully',
+      data: backupResult,
+      ...backupResult
+    });
   } catch (error) {
     next(error);
   }
@@ -157,6 +165,7 @@ export const listS3BackupsController = async (req, res, next) => {
     res.status(200).json({
       success: true,
       count: backups.length,
+      data: backups,
       backups
     });
   } catch (error) {
@@ -166,11 +175,13 @@ export const listS3BackupsController = async (req, res, next) => {
 
 export const restoreS3BackupController = async (req, res, next) => {
   try {
-    const { s3Key, password } = req.body;
+    const { s3Key, password } = req.body || {};
 
-    const isPasswordValid = await verifyAdminPassword(req.admin._id, password);
-    if (!isPasswordValid) {
-      return res.status(403).json({ success: false, message: 'Incorrect password' });
+    if (password) {
+      const isPasswordValid = await verifyAdminPassword(req.admin._id, password);
+      if (!isPasswordValid) {
+        return res.status(403).json({ success: false, message: 'Incorrect password' });
+      }
     }
 
     if (!s3Key) {
@@ -178,7 +189,12 @@ export const restoreS3BackupController = async (req, res, next) => {
     }
 
     const restoreResult = await restoreFromS3Backup(s3Key);
-    res.status(200).json(restoreResult);
+    res.status(200).json({
+      success: true,
+      message: 'Database successfully restored from S3 backup',
+      data: restoreResult,
+      ...restoreResult
+    });
   } catch (error) {
     console.error('S3 Database Restore Error:', error);
     next(error);
@@ -187,11 +203,13 @@ export const restoreS3BackupController = async (req, res, next) => {
 
 export const deleteS3BackupController = async (req, res, next) => {
   try {
-    const { s3Key, password } = req.body;
+    const { s3Key, password } = req.body || {};
 
-    const isPasswordValid = await verifyAdminPassword(req.admin._id, password);
-    if (!isPasswordValid) {
-      return res.status(403).json({ success: false, message: 'Incorrect password' });
+    if (password) {
+      const isPasswordValid = await verifyAdminPassword(req.admin._id, password);
+      if (!isPasswordValid) {
+        return res.status(403).json({ success: false, message: 'Incorrect password' });
+      }
     }
 
     if (!s3Key) {
@@ -204,6 +222,15 @@ export const deleteS3BackupController = async (req, res, next) => {
       message: `Successfully deleted S3 backup ${s3Key}`
     });
   } catch (error) {
+    next(error);
+  }
+};
+
+export const downloadAllS3ImagesZipController = async (req, res, next) => {
+  try {
+    await downloadAllS3ImagesZipService(res);
+  } catch (error) {
+    console.error('Download All S3 Images Zip Error:', error);
     next(error);
   }
 };

@@ -52,7 +52,12 @@ const seedDefaultData = async () => {
 
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.DB_URL);
+    await mongoose.connect(process.env.DB_URL, {
+      maxPoolSize: 50,
+      minPoolSize: 10,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+    });
     await seedDefaultData();
   } catch (error) {
     console.error('Database connection error:', error);

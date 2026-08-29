@@ -315,3 +315,8 @@
 [2026-08-29T09:54:12.367Z] [API-TRAFFIC] POST /api/coupon/apply | Status: 200 | IP: ::1
 [2026-08-29T09:54:33.490Z] [API-TRAFFIC] DELETE /api/cart/clear | Status: 200 | IP: ::1
 [2026-08-29T10:01:26.323Z] [API-TRAFFIC] PUT /api/category/admin/6a69cb745bc5cd1530731b7c | Status: 200 | IP: ::1
+[2026-08-29T12:35:28.508Z] [API-TRAFFIC] POST /api/admin/backup/s3/create | Status: 200 | IP: ::1
+[2026-08-29T12:35:38.953Z] [API-TRAFFIC] DELETE /api/admin/backup/s3/delete | Status: 200 | IP: ::1
+[2026-08-29T12:35:42.335Z] [API-TRAFFIC] DELETE /api/admin/backup/s3/delete | Status: 200 | IP: ::1
+[2026-08-29T12:40:22.179Z] [API-TRAFFIC] GET /api/admin/backup/s3/images-zip | Status: 500 | IP: ::1
+[2026-08-29T12:43:17.256Z] [API-TRAFFIC] GET /api/admin/backup/s3/images-zip | Status: 500 | IP: ::1

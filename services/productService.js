@@ -1,5 +1,6 @@
 import Product from '../model/productModel.js';
 import { uploadImageToS3, uploadMultipleImagesToS3, deleteImageFromS3 } from '../utils/s3Upload.js';
+import { cacheService } from '../utils/cacheService.js';
 
 export const createProductService = async (productData, images, adminId) => {
   const {
@@ -84,10 +85,17 @@ export const createProductService = async (productData, images, adminId) => {
   });
 
   const savedProduct = await product.save();
+  cacheService.clearPattern('products');
   return savedProduct;
 };
 
 export const getAllProductsService = async (isAdmin = false, page = null, limit = null) => {
+  const cacheKey = `products_${isAdmin ? 'admin' : 'public'}_page_${page || 'all'}_limit_${limit || 'all'}`;
+  if (!isAdmin) {
+    const cached = cacheService.get(cacheKey);
+    if (cached) return cached;
+  }
+
   let query = {};
 
   // For non-admin users, only return active products
@@ -110,11 +118,14 @@ export const getAllProductsService = async (isAdmin = false, page = null, limit 
       Product.countDocuments(query),
     ]);
 
-    return {
+    const result = {
       products,
       total,
       totalPages: Math.ceil(total / limit)
     };
+
+    if (!isAdmin) cacheService.set(cacheKey, result, 60);
+    return result;
   }
 
   const products = await Product.find(query)
@@ -122,6 +133,7 @@ export const getAllProductsService = async (isAdmin = false, page = null, limit 
     .sort({ createdAt: -1 })
     .lean();
 
+  if (!isAdmin) cacheService.set(cacheKey, products, 60);
   return products;
 };
 
@@ -235,6 +247,7 @@ export const updateProductService = async (productId, updateData, images, adminI
     { new: true, runValidators: true }
   ).populate('createdBy', 'name email').lean();
 
+  cacheService.clearPattern('products');
   return updatedProduct;
 };
 
@@ -254,6 +267,7 @@ export const deleteProductService = async (productId) => {
   }
 
   await Product.findByIdAndDelete(productId);
+  cacheService.clearPattern('products');
   return { message: 'Product deleted successfully' };
 };
 

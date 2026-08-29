@@ -8,12 +8,14 @@ import {
 } from '@aws-sdk/client-s3';
 import zlib from 'zlib';
 import dotenv from 'dotenv';
+import JSZip from 'jszip';
 
 import AccountLedger from '../model/accountLedgerModel.js';
 import Admin from '../model/adminModel.js';
 import AdminNotification from '../model/adminNotificationModel.js';
 import Banner from '../model/bannerModel.js';
 import Cart from '../model/cartModel.js';
+import Category from '../model/categoryModel.js';
 import Charge from '../model/chargeModel.js';
 import Customer from '../model/customerModel.js';
 import DeliveryPartner from '../model/deliveryPartnerModel.js';
@@ -41,6 +43,7 @@ export const modelsMap = {
   AdminNotification,
   Banner,
   Cart,
+  Category,
   Charge,
   Customer,
   DeliveryPartner,
@@ -319,4 +322,91 @@ export const cleanOldS3Backups = async (retentionDays = 30) => {
     console.error('S3 Backup Retention Cleanup Error:', error);
     throw error;
   }
+};
+
+/**
+ * Downloads all uploaded images across Products, Categories, Banners, and Settings,
+ * bundles them into a zip archive categorized by folder, and streams it to HTTP response.
+ */
+export const downloadAllS3ImagesZipService = async (res) => {
+  const zip = new JSZip();
+
+  const fetchImageBuffer = async (url) => {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) return null;
+      const arrayBuffer = await response.arrayBuffer();
+      return Buffer.from(arrayBuffer);
+    } catch (err) {
+      console.warn(`Failed to fetch image for zip backup: ${url}`, err.message);
+      return null;
+    }
+  };
+
+  const sanitizeFilename = (str) => {
+    return (str || '').replace(/[^a-zA-Z0-9._-]/g, '_');
+  };
+
+  // 1. Products Images
+  const products = await Product.find({}).select('name images').lean();
+  for (const p of products) {
+    if (p.images && p.images.length > 0) {
+      for (let i = 0; i < p.images.length; i++) {
+        const imgUrl = p.images[i];
+        if (imgUrl && typeof imgUrl === 'string' && imgUrl.startsWith('http')) {
+          const buffer = await fetchImageBuffer(imgUrl);
+          if (buffer) {
+            const ext = imgUrl.split('.').pop().split('?')[0] || 'jpg';
+            const fileName = `products/${sanitizeFilename(p.name || 'product')}_${p._id}_img${i + 1}.${ext}`;
+            zip.file(fileName, buffer);
+          }
+        }
+      }
+    }
+  }
+
+  // 2. Categories Images
+  const categories = await Category.find({}).select('name image').lean();
+  for (const c of categories) {
+    if (c.image && typeof c.image === 'string' && c.image.startsWith('http')) {
+      const buffer = await fetchImageBuffer(c.image);
+      if (buffer) {
+        const ext = c.image.split('.').pop().split('?')[0] || 'jpg';
+        const fileName = `categories/${sanitizeFilename(c.name || 'category')}_${c._id}.${ext}`;
+        zip.file(fileName, buffer);
+      }
+    }
+  }
+
+  // 3. Banners Images
+  const banners = await Banner.find({}).select('title image desktopImage mobileImage').lean();
+  for (const b of banners) {
+    const urls = [b.image, b.desktopImage, b.mobileImage].filter(u => u && typeof u === 'string' && u.startsWith('http'));
+    for (let i = 0; i < urls.length; i++) {
+      const buffer = await fetchImageBuffer(urls[i]);
+      if (buffer) {
+        const ext = urls[i].split('.').pop().split('?')[0] || 'jpg';
+        const fileName = `banners/${sanitizeFilename(b.title || 'banner')}_${b._id}_${i + 1}.${ext}`;
+        zip.file(fileName, buffer);
+      }
+    }
+  }
+
+  // 4. Settings Images
+  const settings = await Setting.find({}).select('paymentQrUrl logoUrl').lean();
+  for (const s of settings) {
+    if (s.paymentQrUrl && typeof s.paymentQrUrl === 'string' && s.paymentQrUrl.startsWith('http')) {
+      const buffer = await fetchImageBuffer(s.paymentQrUrl);
+      if (buffer) {
+        const ext = s.paymentQrUrl.split('.').pop().split('?')[0] || 'jpg';
+        zip.file(`settings/payment_qr_code.${ext}`, buffer);
+      }
+    }
+  }
+
+  const zipBuffer = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
+
+  res.attachment(`grocmed_all_s3_images_${new Date().toISOString().slice(0, 10)}.zip`);
+  res.setHeader('Content-Type', 'application/zip');
+  res.send(zipBuffer);
 };
