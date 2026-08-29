@@ -37,6 +37,22 @@ const settingSchema = new mongoose.Schema(
         paymentQrUrl: {
             type: String,
             default: null,
+        },
+        storeTimings: {
+            type: mongoose.Schema.Types.Mixed,
+            default: {
+                isEmergencyClosed: false,
+                closureReason: 'Store is temporarily closed for maintenance',
+                weeklyHours: {
+                    monday: { isClosed: false, openTime: '08:00', closeTime: '22:00' },
+                    tuesday: { isClosed: false, openTime: '08:00', closeTime: '22:00' },
+                    wednesday: { isClosed: false, openTime: '08:00', closeTime: '22:00' },
+                    thursday: { isClosed: false, openTime: '08:00', closeTime: '22:00' },
+                    friday: { isClosed: false, openTime: '08:00', closeTime: '22:00' },
+                    saturday: { isClosed: false, openTime: '08:00', closeTime: '22:00' },
+                    sunday: { isClosed: false, openTime: '08:00', closeTime: '22:00' }
+                }
+            }
         }
     },
     {

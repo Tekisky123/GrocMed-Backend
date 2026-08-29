@@ -1,5 +1,6 @@
 import Setting from '../model/settingModel.js';
 import { uploadImageToS3, deleteImageFromS3 } from '../utils/s3Upload.js';
+import { evaluateStoreStatus } from '../utils/storeTimingHelper.js';
 
 export const getSettings = async (req, res, next) => {
     try {
@@ -9,9 +10,35 @@ export const getSettings = async (req, res, next) => {
             settings = await Setting.create({ singletonKey: 'config' });
         }
         
+        const storeStatus = evaluateStoreStatus(settings);
+        const settingsObj = settings.toObject();
+        if (storeStatus?.weeklyHours) {
+            settingsObj.storeTimings = settingsObj.storeTimings || {};
+            settingsObj.storeTimings.weeklyHours = storeStatus.weeklyHours;
+        }
+
         res.status(200).json({
             success: true,
-            data: settings
+            data: {
+                ...settingsObj,
+                storeStatus
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const getStoreStatus = async (req, res, next) => {
+    try {
+        let settings = await Setting.findOne({ singletonKey: 'config' });
+        if (!settings) {
+            settings = await Setting.create({ singletonKey: 'config' });
+        }
+        const storeStatus = evaluateStoreStatus(settings);
+        res.status(200).json({
+            success: true,
+            data: storeStatus
         });
     } catch (error) {
         next(error);
@@ -20,26 +47,47 @@ export const getSettings = async (req, res, next) => {
 
 export const updateSettings = async (req, res, next) => {
     try {
-        const { minOrderValue, freeDeliveryThreshold, deliveryCharge, maxOrdersPerDay, maxOrdersPerSlot } = req.body;
+        const { 
+            minOrderValue, 
+            freeDeliveryThreshold, 
+            deliveryCharge, 
+            maxOrdersPerDay, 
+            maxOrdersPerSlot,
+            storeTimings 
+        } = req.body;
         
         let settings = await Setting.findOne({ singletonKey: 'config' });
-        
         if (!settings) {
             settings = new Setting({ singletonKey: 'config' });
         }
-        
+
         if (minOrderValue !== undefined) settings.minOrderValue = minOrderValue;
         if (freeDeliveryThreshold !== undefined) settings.freeDeliveryThreshold = freeDeliveryThreshold;
         if (deliveryCharge !== undefined) settings.deliveryCharge = deliveryCharge;
         if (maxOrdersPerDay !== undefined) settings.maxOrdersPerDay = maxOrdersPerDay;
         if (maxOrdersPerSlot !== undefined) settings.maxOrdersPerSlot = maxOrdersPerSlot;
-        
+
+        if (storeTimings !== undefined) {
+            settings.storeTimings = storeTimings;
+            settings.markModified('storeTimings');
+        }
+
         await settings.save();
-        
+
+        const storeStatus = evaluateStoreStatus(settings);
+        const settingsObj = settings.toObject();
+        if (storeStatus?.weeklyHours) {
+            settingsObj.storeTimings = settingsObj.storeTimings || {};
+            settingsObj.storeTimings.weeklyHours = storeStatus.weeklyHours;
+        }
+
         res.status(200).json({
             success: true,
             message: 'Settings updated successfully',
-            data: settings
+            data: {
+                ...settingsObj,
+                storeStatus
+            }
         });
     } catch (error) {
         next(error);

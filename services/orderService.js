@@ -3,6 +3,7 @@ import Cart from '../model/cartModel.js';
 import Product from '../model/productModel.js';
 import Setting from '../model/settingModel.js';
 import DeliverySlot from '../model/deliverySlotModel.js';
+import Coupon from '../model/couponModel.js';
 import { sendPushNotification } from '../utils/notificationService.js';
 import { sendWhatsAppMessage } from '../utils/whatsappService.js';
 import { sysLog } from '../utils/logger.js';
@@ -182,8 +183,33 @@ export const createOrderService = async (customerId, orderData) => {
         };
     });
 
+    let discountAmount = 0;
+    let appliedCouponCode = null;
+
+    if (orderData.couponCode) {
+        try {
+            const cleanCode = orderData.couponCode.trim().toUpperCase();
+            const coupon = await Coupon.findOne({ code: cleanCode });
+            if (coupon) {
+                const validation = coupon.isValid(subtotal, customerId);
+                if (validation.valid) {
+                    appliedCouponCode = coupon.code;
+                    discountAmount = Math.round((subtotal * coupon.discountPercentage) / 100);
+                    if (coupon.maxDiscountAmount && discountAmount > coupon.maxDiscountAmount) {
+                        discountAmount = coupon.maxDiscountAmount;
+                    }
+                    coupon.usedCount += 1;
+                    coupon.usedBy.push({ userId: customerId, usedAt: new Date() });
+                    await coupon.save();
+                }
+            }
+        } catch (couponErr) {
+            console.error('Error applying coupon during order creation:', couponErr);
+        }
+    }
+
     const deliveryCharge = subtotal >= settings.freeDeliveryThreshold ? 0 : settings.deliveryCharge;
-    const finalTotalAmount = subtotal + deliveryCharge;
+    const finalTotalAmount = Math.max(0, subtotal - discountAmount + deliveryCharge);
 
     let finalAddress = {
         street: '',
@@ -219,6 +245,8 @@ export const createOrderService = async (customerId, orderData) => {
         paymentMethod,
         totalAmount: finalTotalAmount,
         deliveryCharge,
+        couponCode: appliedCouponCode,
+        discountAmount,
         taxAmount: parseFloat(totalTaxAmount.toFixed(2)),
         cgstAmount: parseFloat(totalCgst.toFixed(2)),
         sgstAmount: parseFloat(totalSgst.toFixed(2)),

@@ -40,9 +40,24 @@ router.get('/exportOrders', authenticateToken, exportOrdersBackupController);
 router.get('/exportCustomers', authenticateToken, exportCustomersBackupController);
 
 // Database JSON Backup & Restore
-import { exportAllDataController, restoreAllDataController } from '../controller/backupController.js';
+import { 
+  exportAllDataController, 
+  restoreAllDataController,
+  exportS3BackupController,
+  listS3BackupsController,
+  restoreS3BackupController,
+  deleteS3BackupController
+} from '../controller/backupController.js';
+
 router.post('/backup/export', authenticateToken, isSuperAdmin, exportAllDataController);
 router.post('/backup/restore', authenticateToken, isSuperAdmin, restoreAllDataController);
 
+// AWS S3 Database Backup & Restore
+router.post('/backup/s3/create', authenticateToken, isSuperAdmin, exportS3BackupController);
+router.get('/backup/s3/list', authenticateToken, isSuperAdmin, listS3BackupsController);
+router.post('/backup/s3/restore', authenticateToken, isSuperAdmin, restoreS3BackupController);
+router.delete('/backup/s3/delete', authenticateToken, isSuperAdmin, deleteS3BackupController);
+
 export default router;
+
 

@@ -16,6 +16,7 @@ import reportRoutes from './routes/reportRoutes.js';
 import adminNotificationRoutes from './routes/adminNotificationRoutes.js';
 import settingRoutes from './routes/settingRoutes.js';
 import bannerRoutes from './routes/bannerRoutes.js';
+import couponRoutes from './routes/couponRoutes.js';
 
 // --- Accounts & Finance Routes ---
 import financeRoutes from './routes/financeRoute.js';
@@ -33,10 +34,12 @@ import deliverySlotRoutes from './routes/deliverySlotRoutes.js';
 import { errorHandler, notFoundHandler } from './middleware/errorMiddleware.js';
 import { reqLogger } from './middleware/reqLogger.js';
 import { authenticateToken, isSuperAdmin } from './middleware/authMiddleware.js';
+import { initS3CronBackup } from './services/s3CronBackup.js';
 
 dotenv.config();
 
 const app = express();
+
 
 // CORS Middleware
 const allowedOrigins = [
@@ -74,7 +77,12 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(reqLogger);
 
 // Database connection
-connectDB();
+connectDB().then(() => {
+  initS3CronBackup();
+}).catch((err) => {
+  console.error('Database connection error:', err);
+});
+
 
 // Routes
 app.use('/api/admin', adminRoutes);
@@ -115,6 +123,10 @@ app.use('/api/banners', bannerRoutes); // Public alias for customer app
 // Delivery Slot Management
 app.use('/api/admin/delivery-slots', deliverySlotRoutes);
 app.use('/api/delivery-slots', deliverySlotRoutes); // Public alias for customer app
+
+// Coupon Management
+app.use('/api/admin/coupons', couponRoutes);
+app.use('/api/coupon', couponRoutes);
 
 // Health check route
 app.get('/health', (req, res) => {

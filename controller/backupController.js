@@ -21,6 +21,12 @@ import Setting from '../model/settingModel.js';
 import Shareholder from '../model/shareholderModel.js';
 import StockAdjustment from '../model/stockAdjustmentModel.js';
 import Vendor from '../model/vendorModel.js';
+import { 
+  createAndUploadS3Backup, 
+  listS3Backups, 
+  restoreFromS3Backup, 
+  deleteS3Backup 
+} from '../utils/s3Backup.js';
 
 const modelsMap = {
   AccountLedger,
@@ -119,11 +125,86 @@ export const restoreAllDataController = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: 'Database restored successfully',
+      message: 'Data restored successfully',
       summary
     });
   } catch (error) {
-    console.error('Database Restore Error:', error);
     next(error);
   }
 };
+
+export const exportS3BackupController = async (req, res, next) => {
+  try {
+    const { password } = req.body;
+    
+    const isPasswordValid = await verifyAdminPassword(req.admin._id, password);
+    if (!isPasswordValid) {
+      return res.status(403).json({ success: false, message: 'Incorrect password' });
+    }
+
+    const retentionDays = parseInt(process.env.BACKUP_RETENTION_DAYS || '30', 10);
+    const backupResult = await createAndUploadS3Backup(retentionDays);
+
+    res.status(200).json(backupResult);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const listS3BackupsController = async (req, res, next) => {
+  try {
+    const backups = await listS3Backups();
+    res.status(200).json({
+      success: true,
+      count: backups.length,
+      backups
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const restoreS3BackupController = async (req, res, next) => {
+  try {
+    const { s3Key, password } = req.body;
+
+    const isPasswordValid = await verifyAdminPassword(req.admin._id, password);
+    if (!isPasswordValid) {
+      return res.status(403).json({ success: false, message: 'Incorrect password' });
+    }
+
+    if (!s3Key) {
+      return res.status(400).json({ success: false, message: 'Missing s3Key parameter' });
+    }
+
+    const restoreResult = await restoreFromS3Backup(s3Key);
+    res.status(200).json(restoreResult);
+  } catch (error) {
+    console.error('S3 Database Restore Error:', error);
+    next(error);
+  }
+};
+
+export const deleteS3BackupController = async (req, res, next) => {
+  try {
+    const { s3Key, password } = req.body;
+
+    const isPasswordValid = await verifyAdminPassword(req.admin._id, password);
+    if (!isPasswordValid) {
+      return res.status(403).json({ success: false, message: 'Incorrect password' });
+    }
+
+    if (!s3Key) {
+      return res.status(400).json({ success: false, message: 'Missing s3Key parameter' });
+    }
+
+    await deleteS3Backup(s3Key);
+    res.status(200).json({
+      success: true,
+      message: `Successfully deleted S3 backup ${s3Key}`
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+

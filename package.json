@@ -8,6 +8,7 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "seed:admin": "node scripts/seedAdmin.js",
+    "backup:s3": "node scripts/trigger_s3_backup.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

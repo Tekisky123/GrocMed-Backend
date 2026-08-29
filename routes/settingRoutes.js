@@ -1,5 +1,5 @@
 import express from 'express';
-import { getSettings, updateSettings, uploadPaymentQr, deletePaymentQr } from '../controller/settingController.js';
+import { getSettings, getStoreStatus, updateSettings, uploadPaymentQr, deletePaymentQr } from '../controller/settingController.js';
 import { authenticateToken } from '../middleware/authMiddleware.js';
 import { upload } from '../middleware/uploadMiddleware.js';
 
@@ -7,6 +7,8 @@ const router = express.Router();
 
 // Publicly available to query constraints instantly
 router.get('/', getSettings);
+router.get('/store-status', getStoreStatus);
+
 
 // Protected update route (Admin only)
 router.put('/', authenticateToken, updateSettings);
