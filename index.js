@@ -36,9 +36,14 @@ import { reqLogger } from './middleware/reqLogger.js';
 import { authenticateToken, isSuperAdmin } from './middleware/authMiddleware.js';
 import { initS3CronBackup } from './services/s3CronBackup.js';
 
+import compression from 'compression';
+
 dotenv.config();
 
 const app = express();
+
+// Gzip response compression for ultra-fast payload delivery
+app.use(compression());
 
 
 // CORS Middleware

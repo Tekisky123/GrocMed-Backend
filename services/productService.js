@@ -101,12 +101,15 @@ export const getAllProductsService = async (isAdmin = false, page = null, limit 
     // Exclude heavy fields like description for catalog lists to reduce payload size
     const projection = !isAdmin ? '-description -createdBy' : '';
 
-    const products = await Product.find(query, projection)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
+    const [products, total] = await Promise.all([
+      Product.find(query, projection)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Product.countDocuments(query),
+    ]);
 
-    const total = await Product.countDocuments(query);
     return {
       products,
       total,
@@ -116,7 +119,8 @@ export const getAllProductsService = async (isAdmin = false, page = null, limit 
 
   const products = await Product.find(query)
     .populate('createdBy', 'name email')
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .lean();
 
   return products;
 };
@@ -129,7 +133,7 @@ export const getProductByIdService = async (productId, isAdmin = false) => {
     query.isActive = true;
   }
 
-  const product = await Product.findOne(query).populate('createdBy', 'name email');
+  const product = await Product.findOne(query).populate('createdBy', 'name email').lean();
 
   if (!product) {
     throw new Error('Product not found');
@@ -229,7 +233,7 @@ export const updateProductService = async (productId, updateData, images, adminI
       images: imageUrls,
     },
     { new: true, runValidators: true }
-  ).populate('createdBy', 'name email');
+  ).populate('createdBy', 'name email').lean();
 
   return updatedProduct;
 };
@@ -292,12 +296,12 @@ export const searchProductsService = async (query, category, onlyActive = true) 
     searchCriteria.category = { $regex: category, $options: 'i' };
   }
 
-  const products = await Product.find(searchCriteria).sort({ createdAt: -1 });
+  const products = await Product.find(searchCriteria).sort({ createdAt: -1 }).limit(50).lean();
   return products;
 };
 
 export const getSuggestedProductsService = async (productId) => {
-  const currentProduct = await Product.findById(productId);
+  const currentProduct = await Product.findById(productId).select('category').lean();
   if (!currentProduct) {
     throw new Error('Product not found');
   }
@@ -308,7 +312,8 @@ export const getSuggestedProductsService = async (productId) => {
     isActive: true
   })
     .sort({ createdAt: -1 })
-    .limit(10); // Limit to 10 suggestions
+    .limit(10)
+    .lean();
 
   return suggestedProducts;
 };
