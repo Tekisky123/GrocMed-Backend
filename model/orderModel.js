@@ -21,7 +21,10 @@ const orderItemSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
-    hsnCode: String // Snapshot of HSN code at order time
+    hsnCode: String, // Snapshot of HSN code at order time
+    packagingOptionId: String, // Snapshot of packaging option ID if selected
+    packagingLabel: String, // Snapshot of packaging label e.g. "Pack of 6" or "500g"
+    unit: String // Snapshot of product unit e.g. "kg", "pcs", "L"
 });
 
 const orderSchema = new mongoose.Schema(
@@ -124,6 +127,11 @@ const orderSchema = new mongoose.Schema(
         timestamps: true,
     }
 );
+
+// Define composite indexes for fast query performance
+orderSchema.index({ customer: 1, createdAt: -1 });
+orderSchema.index({ orderStatus: 1, createdAt: -1 });
+orderSchema.index({ createdAt: -1 });
 
 const Order = mongoose.model('Order', orderSchema);
 

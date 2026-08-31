@@ -5,9 +5,8 @@ export const createCoupon = async (req, res, next) => {
   try {
     const {
       code,
-      discountPercentage,
+      discountAmount,
       minOrderAmount,
-      maxDiscountAmount,
       validFrom,
       validUntil,
       usageLimit,
@@ -15,10 +14,10 @@ export const createCoupon = async (req, res, next) => {
       isActive,
     } = req.body;
 
-    if (!code || !discountPercentage || !validUntil) {
+    if (!code || !discountAmount || !validUntil) {
       return res.status(400).json({
         success: false,
-        message: 'Coupon code, discount percentage, and expiration date are required',
+        message: 'Coupon code, discount amount, and expiration date are required',
       });
     }
 
@@ -34,9 +33,8 @@ export const createCoupon = async (req, res, next) => {
 
     const coupon = await Coupon.create({
       code: cleanCode,
-      discountPercentage: Number(discountPercentage),
+      discountAmount: Number(discountAmount),
       minOrderAmount: Number(minOrderAmount || 0),
-      maxDiscountAmount: maxDiscountAmount ? Number(maxDiscountAmount) : null,
       validFrom: validFrom ? new Date(validFrom) : new Date(),
       validUntil: new Date(validUntil),
       usageLimit: Number(usageLimit || 100),
@@ -162,21 +160,15 @@ export const applyCoupon = async (req, res, next) => {
       });
     }
 
-    // Calculate discount amount
-    let discountAmount = Math.round((Number(cartSubtotal) * coupon.discountPercentage) / 100);
-
-    // Apply max discount ceiling if specified
-    if (coupon.maxDiscountAmount && discountAmount > coupon.maxDiscountAmount) {
-      discountAmount = coupon.maxDiscountAmount;
-    }
+    // Calculate discount amount (flat rupee discount, capped at subtotal)
+    let discountAmount = Math.min(Number(cartSubtotal), coupon.discountAmount);
 
     res.status(200).json({
       success: true,
-      message: `${coupon.discountPercentage}% discount applied!`,
+      message: `₹${discountAmount} discount applied!`,
       data: {
         couponId: coupon._id,
         code: coupon.code,
-        discountPercentage: coupon.discountPercentage,
         discountAmount,
         finalTotal: Math.max(0, Number(cartSubtotal) - discountAmount),
       },
@@ -194,7 +186,7 @@ export const getAvailableCoupons = async (req, res, next) => {
       isActive: true,
       validFrom: { $lte: now },
       validUntil: { $gte: now },
-    }).select('code discountPercentage minOrderAmount maxDiscountAmount validUntil perUserLimit');
+    }).select('code discountAmount minOrderAmount validUntil perUserLimit');
 
     res.status(200).json({
       success: true,

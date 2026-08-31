@@ -164,6 +164,7 @@ const productSchema = new mongoose.Schema(
 // Define composite indexes for query performance
 productSchema.index({ isActive: 1, createdAt: -1 });
 productSchema.index({ category: 1, isActive: 1 });
+productSchema.index({ brand: 1, isActive: 1 });
 
 const Product = mongoose.model('Product', productSchema);
 

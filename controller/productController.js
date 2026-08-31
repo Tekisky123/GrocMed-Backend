@@ -84,6 +84,7 @@ export const createProductController = async (req, res, next) => {
 
 export const getAllProductsController = async (req, res, next) => {
   try {
+    res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
     const page = req.query.page ? parseInt(req.query.page) : null;
     const limit = req.query.limit ? parseInt(req.query.limit) : null;
 

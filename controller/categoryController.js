@@ -9,6 +9,7 @@ import {
 
 export const getAllCategoriesController = async (req, res, next) => {
     try {
+        res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
         const categories = await getAllCategoriesService();
         res.status(200).json({
             success: true,

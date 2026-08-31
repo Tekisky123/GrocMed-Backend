@@ -9,20 +9,15 @@ const couponSchema = new mongoose.Schema(
       uppercase: true,
       trim: true,
     },
-    discountPercentage: {
+    discountAmount: {
       type: Number,
-      required: [true, 'Discount percentage is required'],
-      min: [1, 'Discount percentage must be at least 1%'],
-      max: [100, 'Discount percentage cannot exceed 100%'],
+      required: [true, 'Discount amount is required'],
+      min: [1, 'Discount amount must be at least ₹1'],
     },
     minOrderAmount: {
       type: Number,
       default: 0,
       min: [0, 'Minimum order amount cannot be negative'],
-    },
-    maxDiscountAmount: {
-      type: Number,
-      default: null, // Optional ceiling amount in Rupees
     },
     validFrom: {
       type: Date,

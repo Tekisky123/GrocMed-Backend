@@ -3,7 +3,9 @@ import Order from '../model/orderModel.js';
 
 export const downloadInvoice = async (req, res) => {
     try {
-        const order = await Order.findById(req.params.id).populate('customer');
+        const order = await Order.findById(req.params.id)
+            .populate('customer')
+            .populate('items.product', 'name unit unitType perUnitWeightVolume packagingOptions');
         if (!order) {
             return res.status(404).json({ success: false, message: 'Order not found' });
         }
@@ -139,9 +141,12 @@ export const downloadInvoice = async (req, res) => {
                 doc.moveTo(x, rowY).lineTo(x, rowY + rowHeight).stroke();
             });
 
+            const packDetail = item.packagingLabel || item.unit || item.product?.perUnitWeightVolume || item.product?.unit || '';
+            const itemDescription = packDetail ? `${item.name || 'Product'} (${packDetail})` : (item.name || 'Product');
+
             doc.fillColor('#000');
             doc.text(i + 1, col_idx.x, rowY + 8, { width: col_idx.w, align: 'center' });
-            doc.text(item.name || 'Product', col_desc.x + 5, rowY + 8, { width: col_desc.w - 10, height: rowHeight - 5, ellipsis: true });
+            doc.text(itemDescription, col_desc.x + 5, rowY + 8, { width: col_desc.w - 10, height: rowHeight - 5, ellipsis: true });
             doc.text(item.hsnCode || 'N/A', col_hsn.x, rowY + 8, { width: col_hsn.w, align: 'center' });
             doc.text(item.quantity, col_qty.x, rowY + 8, { width: col_qty.w, align: 'center' });
             doc.text(item.price.toFixed(2), col_price.x, rowY + 8, { width: col_price.w - 5, align: 'right' });

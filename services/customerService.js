@@ -79,7 +79,7 @@ export const loginCustomerService = async (credentials) => {
 };
 
 export const getAllCustomersService = async () => {
-    return await Customer.find({}).select('-password');
+    return await Customer.find({}).select('-password').sort({ createdAt: -1 });
 };
 
 export const getCustomerByIdService = async (id) => {
@@ -154,7 +154,7 @@ export const searchCustomersService = async (query) => {
             { email: { $regex: query, $options: 'i' } },
             { phone: { $regex: query, $options: 'i' } }
         ]
-    }).select('-password');
+    }).select('-password').sort({ createdAt: -1 });
     return customers;
 };
 

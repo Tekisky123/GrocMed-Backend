@@ -172,6 +172,15 @@ export const createOrderService = async (customerId, orderData) => {
             totalSgst += tax / 2;
         }
 
+        let packLabel = item.packagingOptionLabel || item.packagingLabel || '';
+        if (!packLabel && item.packagingOptionId && item.product.packagingOptions) {
+            const opt = item.product.packagingOptions.find(p => String(p._id) === String(item.packagingOptionId) || p.id === item.packagingOptionId);
+            if (opt) packLabel = opt.label;
+        }
+        if (!packLabel) {
+            packLabel = item.product.perUnitWeightVolume || item.product.unit || '';
+        }
+
         return {
             product: item.product._id,
             name: item.product.name,
@@ -179,7 +188,10 @@ export const createOrderService = async (customerId, orderData) => {
             price: item.price, // Price at time of adding to cart (or could refresh here)
             image: item.product.images && item.product.images.length > 0 ? item.product.images[0] : null,
             gstRate: gstRate,
-            hsnCode: item.product.hsnCode || ''
+            hsnCode: item.product.hsnCode || '',
+            packagingOptionId: item.packagingOptionId || null,
+            packagingLabel: packLabel,
+            unit: item.product.unit || ''
         };
     });
 
@@ -194,10 +206,7 @@ export const createOrderService = async (customerId, orderData) => {
                 const validation = coupon.isValid(subtotal, customerId);
                 if (validation.valid) {
                     appliedCouponCode = coupon.code;
-                    discountAmount = Math.round((subtotal * coupon.discountPercentage) / 100);
-                    if (coupon.maxDiscountAmount && discountAmount > coupon.maxDiscountAmount) {
-                        discountAmount = coupon.maxDiscountAmount;
-                    }
+                    discountAmount = Math.min(subtotal, coupon.discountAmount || 0);
                     coupon.usedCount += 1;
                     coupon.usedBy.push({ userId: customerId, usedAt: new Date() });
                     await coupon.save();
@@ -326,6 +335,7 @@ export const getAllOrdersService = async () => {
     const orders = await Order.find({})
         .populate('customer', 'name phone email shopName')
         .populate('deliveryPartner', 'name phone email')
+        .populate('items.product', 'name unit unitType perUnitWeightVolume packagingOptions')
         .sort({ createdAt: -1 });
     return orders;
 };
@@ -333,7 +343,8 @@ export const getAllOrdersService = async () => {
 export const getOrderByIdForAdminService = async (orderId) => {
     const order = await Order.findById(orderId)
         .populate('customer', 'name phone email shopName')
-        .populate('deliveryPartner', 'name phone email');
+        .populate('deliveryPartner', 'name phone email')
+        .populate('items.product', 'name unit unitType perUnitWeightVolume packagingOptions');
     if (!order) {
         throw new Error('Order not found');
     }
