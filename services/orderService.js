@@ -172,13 +172,20 @@ export const createOrderService = async (customerId, orderData) => {
             totalSgst += tax / 2;
         }
 
+        let unitsPerPack = item.unitsPerPack || 1;
         let packLabel = item.packagingOptionLabel || item.packagingLabel || '';
-        if (!packLabel && item.packagingOptionId && item.product.packagingOptions) {
+        if (item.packagingOptionId && item.product.packagingOptions) {
             const opt = item.product.packagingOptions.find(p => String(p._id) === String(item.packagingOptionId) || p.id === item.packagingOptionId);
-            if (opt) packLabel = opt.label;
+            if (opt) {
+                if (!packLabel) packLabel = opt.label;
+                if (opt.unitsPerPack) unitsPerPack = opt.unitsPerPack;
+            }
         }
         if (!packLabel) {
             packLabel = item.product.perUnitWeightVolume || item.product.unit || '';
+        }
+        if (unitsPerPack <= 1 && item.product.unitsPerUnitType) {
+            unitsPerPack = item.product.unitsPerUnitType;
         }
 
         return {
@@ -191,7 +198,8 @@ export const createOrderService = async (customerId, orderData) => {
             hsnCode: item.product.hsnCode || '',
             packagingOptionId: item.packagingOptionId || null,
             packagingLabel: packLabel,
-            unit: item.product.unit || ''
+            unit: item.product.unit || '',
+            unitsPerPack: unitsPerPack || 1
         };
     });
 
@@ -335,7 +343,7 @@ export const getAllOrdersService = async () => {
     const orders = await Order.find({})
         .populate('customer', 'name phone email shopName')
         .populate('deliveryPartner', 'name phone email')
-        .populate('items.product', 'name unit unitType perUnitWeightVolume packagingOptions')
+        .populate('items.product', 'name unit unitType perUnitWeightVolume unitsPerUnitType packagingOptions')
         .sort({ createdAt: -1 });
     return orders;
 };
@@ -344,7 +352,7 @@ export const getOrderByIdForAdminService = async (orderId) => {
     const order = await Order.findById(orderId)
         .populate('customer', 'name phone email shopName')
         .populate('deliveryPartner', 'name phone email')
-        .populate('items.product', 'name unit unitType perUnitWeightVolume packagingOptions');
+        .populate('items.product', 'name unit unitType perUnitWeightVolume unitsPerUnitType packagingOptions');
     if (!order) {
         throw new Error('Order not found');
     }

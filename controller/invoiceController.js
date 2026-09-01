@@ -96,62 +96,121 @@ export const downloadInvoice = async (req, res) => {
         const tableTop = 180;
         
         // Columns configuration
-        const col_idx = { x: 30, w: 20 };
-        const col_desc = { x: 50, w: 230 };
-        const col_hsn = { x: 280, w: 45 };
-        const col_qty = { x: 325, w: 30 };
-        const col_price = { x: 355, w: 60 };
-        const col_gst = { x: 415, w: 40 };
-        const col_total = { x: 455, w: 110 };
+        const col_idx = { x: 30, w: 25 };
+        const col_desc = { x: 55, w: 215 };
+        const col_hsn = { x: 270, w: 45 };
+        const col_qty = { x: 315, w: 75 };
+        const col_price = { x: 390, w: 55 };
+        const col_gst = { x: 445, w: 35 };
+        const col_total = { x: 480, w: 85 };
 
         // Draw Header Box
         doc.rect(30, tableTop, contentWidth, 20).fill('#F2F2F2').stroke('#333');
         doc.fillColor('#333').fontSize(8).font('Helvetica-Bold');
         
         doc.text('SN', col_idx.x, tableTop + 6, { width: col_idx.w, align: 'center' });
-        doc.text('Description of Goods', col_desc.x + 5, tableTop + 6);
+        doc.text('Description of Goods', col_desc.x + 4, tableTop + 6);
         doc.text('HSN', col_hsn.x, tableTop + 6, { width: col_hsn.w, align: 'center' });
-        doc.text('Qty', col_qty.x, tableTop + 6, { width: col_qty.w, align: 'center' });
-        doc.text('Unit Price', col_price.x, tableTop + 6, { width: col_price.w, align: 'right' });
+        doc.text('Qty / Units', col_qty.x, tableTop + 6, { width: col_qty.w, align: 'center' });
+        doc.text('Unit Price', col_price.x, tableTop + 6, { width: col_price.w - 4, align: 'right' });
         doc.text('GST %', col_gst.x, tableTop + 6, { width: col_gst.w, align: 'center' });
-        doc.text('Amount (INR)', col_total.x, tableTop + 6, { width: col_total.w - 5, align: 'right' });
+        doc.text('Amount (INR)', col_total.x, tableTop + 6, { width: col_total.w - 4, align: 'right' });
 
         // Table Rows
         let rowY = tableTop + 20;
-        doc.font('Helvetica').fontSize(8);
         
         order.items.forEach((item, i) => {
             const itemTotal = item.price * item.quantity;
-            const rowHeight = 25;
+
+            const matchingOpt = item.product?.packagingOptions?.find(
+                opt => String(opt._id) === String(item.packagingOptionId) || opt.id === item.packagingOptionId
+            );
+            const unitsPerPack = matchingOpt?.unitsPerPack || item.unitsPerPack || item.product?.unitsPerUnitType || item.product?.unitsPerPack || 1;
+            const packDetail = matchingOpt?.label || item.packagingLabel || item.unit || item.product?.unitType || '';
+            const weightVolume = item.product?.perUnitWeightVolume || '';
+
+            let unitTypeName = item.product?.unitType;
+            if (!unitTypeName) {
+                const lowerLabel = packDetail.toLowerCase();
+                if (lowerLabel.includes('box')) unitTypeName = 'Box';
+                else if (lowerLabel.includes('strip')) unitTypeName = 'Strip';
+                else if (lowerLabel.includes('carton')) unitTypeName = 'Carton';
+                else if (lowerLabel.includes('jar')) unitTypeName = 'Jar';
+                else if (lowerLabel.includes('bottle')) unitTypeName = 'Bottle';
+                else unitTypeName = 'Pack';
+            }
+            const pluralUnit = item.quantity === 1 ? unitTypeName : `${unitTypeName}s`;
+
+            const totalItems = item.quantity * unitsPerPack;
+            const hasMultiPack = unitsPerPack > 1;
+            const rowHeight = hasMultiPack ? 36 : 28;
 
             // Page Break Check
-            if (rowY > 750) {
+            if (rowY + rowHeight > 750) {
                 doc.addPage();
                 rowY = 40;
             }
 
-            // Row vertical lines and bottom line
-            doc.lineWidth(0.5).strokeColor('#333');
+            // Draw row box and vertical dividers
+            doc.lineWidth(0.5).strokeColor('#ccc');
             doc.lineJoin('miter')
                .rect(30, rowY, contentWidth, rowHeight)
                .stroke();
 
-            // Vertical Dividers
             [col_desc.x, col_hsn.x, col_qty.x, col_price.x, col_gst.x, col_total.x].forEach(x => {
                 doc.moveTo(x, rowY).lineTo(x, rowY + rowHeight).stroke();
             });
 
-            const packDetail = item.packagingLabel || item.unit || item.product?.perUnitWeightVolume || item.product?.unit || '';
-            const itemDescription = packDetail ? `${item.name || 'Product'} (${packDetail})` : (item.name || 'Product');
+            const textY = rowY + 4;
 
-            doc.fillColor('#000');
-            doc.text(i + 1, col_idx.x, rowY + 8, { width: col_idx.w, align: 'center' });
-            doc.text(itemDescription, col_desc.x + 5, rowY + 8, { width: col_desc.w - 10, height: rowHeight - 5, ellipsis: true });
-            doc.text(item.hsnCode || 'N/A', col_hsn.x, rowY + 8, { width: col_hsn.w, align: 'center' });
-            doc.text(item.quantity, col_qty.x, rowY + 8, { width: col_qty.w, align: 'center' });
-            doc.text(item.price.toFixed(2), col_price.x, rowY + 8, { width: col_price.w - 5, align: 'right' });
-            doc.text(`${item.gstRate || 0}%`, col_gst.x, rowY + 8, { width: col_gst.w, align: 'center' });
-            doc.text(itemTotal.toFixed(2), col_total.x, rowY + 8, { width: col_total.w - 5, align: 'right' });
+            // 1. SN
+            doc.fillColor('#000').font('Helvetica').fontSize(8);
+            doc.text(i + 1, col_idx.x, textY + 2, { width: col_idx.w, align: 'center' });
+
+            // 2. Description of Goods
+            doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#111');
+            doc.text(item.name || 'Product', col_desc.x + 4, textY, { width: col_desc.w - 8, height: 11, ellipsis: true });
+
+            let packSubtext = packDetail ? `Pkg: ${packDetail}` : '';
+            if (weightVolume && weightVolume !== packDetail) {
+                packSubtext += packSubtext ? ` (${weightVolume})` : `Net Wt: ${weightVolume}`;
+            }
+            if (hasMultiPack) {
+                packSubtext += ` • ${unitsPerPack} items/pack`;
+            }
+
+            if (packSubtext) {
+                doc.font('Helvetica').fontSize(7.5).fillColor('#555');
+                doc.text(packSubtext, col_desc.x + 4, textY + 11, { width: col_desc.w - 8, height: 10, ellipsis: true });
+            }
+
+            if (hasMultiPack) {
+                doc.font('Helvetica-Bold').fontSize(7.5).fillColor('#065f46');
+                doc.text(`Total: ${totalItems} items (${item.quantity} ${pluralUnit} × ${unitsPerPack} pcs)`, col_desc.x + 4, textY + 21, { width: col_desc.w - 8, height: 10, ellipsis: true });
+            }
+
+            // 3. HSN
+            doc.font('Helvetica').fontSize(8).fillColor('#333');
+            doc.text(item.hsnCode || 'N/A', col_hsn.x, textY + 4, { width: col_hsn.w, align: 'center' });
+
+            // 4. Quantity Column
+            doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#000');
+            doc.text(`${item.quantity} ${pluralUnit}`, col_qty.x, textY + (hasMultiPack ? 2 : 4), { width: col_qty.w, align: 'center' });
+            if (hasMultiPack) {
+                doc.font('Helvetica').fontSize(7.5).fillColor('#065f46');
+                doc.text(`(${totalItems} items)`, col_qty.x, textY + 13, { width: col_qty.w, align: 'center' });
+            }
+
+            // 5. Unit Price
+            doc.font('Helvetica').fontSize(8).fillColor('#000');
+            doc.text(item.price.toFixed(2), col_price.x, textY + 4, { width: col_price.w - 4, align: 'right' });
+
+            // 6. GST %
+            doc.text(`${item.gstRate || 0}%`, col_gst.x, textY + 4, { width: col_gst.w, align: 'center' });
+
+            // 7. Total Amount
+            doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#000');
+            doc.text(itemTotal.toFixed(2), col_total.x, textY + 4, { width: col_total.w - 4, align: 'right' });
             
             rowY += rowHeight;
         });

@@ -24,7 +24,11 @@ const orderItemSchema = new mongoose.Schema({
     hsnCode: String, // Snapshot of HSN code at order time
     packagingOptionId: String, // Snapshot of packaging option ID if selected
     packagingLabel: String, // Snapshot of packaging label e.g. "Pack of 6" or "500g"
-    unit: String // Snapshot of product unit e.g. "kg", "pcs", "L"
+    unit: String, // Snapshot of product unit e.g. "kg", "pcs", "L"
+    unitsPerPack: { // Number of individual items inside this pack/box
+        type: Number,
+        default: 1
+    }
 });
 
 const orderSchema = new mongoose.Schema(
