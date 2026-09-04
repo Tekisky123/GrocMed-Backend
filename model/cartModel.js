@@ -26,6 +26,12 @@ const cartItemSchema = new mongoose.Schema({
         required: false,
         default: null,
     },
+    unitsPerPack: {
+        type: Number,
+        required: false,
+        min: 1,
+        default: 1,
+    },
 });
 
 const cartSchema = new mongoose.Schema(

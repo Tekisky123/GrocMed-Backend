@@ -9,6 +9,7 @@ export const addToCartService = async (customerId, productId, quantity, packagin
     let price;
     let minimumQty;
     let packagingLabel = null;
+    let unitsPerPack = product.unitsPerUnitType || 1;
 
     if (packagingOptionId && product.packagingOptions?.length > 0) {
         const option = product.packagingOptions.find(
@@ -19,6 +20,7 @@ export const addToCartService = async (customerId, productId, quantity, packagin
         price = option.salePrice;
         minimumQty = option.minQty || 1;
         packagingLabel = option.label;
+        unitsPerPack = option.unitsPerPack || 1;
     } else {
         // Fallback to product-level pricing
         price = product.offerPrice || product.singleUnitPrice || product.mrp;
@@ -50,6 +52,8 @@ export const addToCartService = async (customerId, productId, quantity, packagin
             } else {
                 cart.items[itemIndex].quantity = newQuantity;
                 cart.items[itemIndex].price = price;
+                cart.items[itemIndex].packagingLabel = packagingLabel;
+                cart.items[itemIndex].unitsPerPack = unitsPerPack;
             }
         } else {
             if (quantity < minimumQty) {
@@ -61,6 +65,7 @@ export const addToCartService = async (customerId, productId, quantity, packagin
                 price,
                 packagingOptionId: packagingOptionId || null,
                 packagingLabel,
+                unitsPerPack,
             });
         }
     } else {
@@ -75,6 +80,7 @@ export const addToCartService = async (customerId, productId, quantity, packagin
                 price,
                 packagingOptionId: packagingOptionId || null,
                 packagingLabel,
+                unitsPerPack,
             }],
         });
     }

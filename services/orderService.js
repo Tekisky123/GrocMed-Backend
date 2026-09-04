@@ -396,10 +396,19 @@ export const updateOrderStatusService = async (orderId, status, deliveryPartnerI
     const wasAlreadyReversed = (previousStatus === 'Cancelled' || previousStatus === 'Returned');
     
     if (isReversingStock && !wasAlreadyReversed) {
-        const rollbackPromises = order.items.map(item => {
-            return Product.findByIdAndUpdate(item.product, { $inc: { stock: item.quantity } });
-        });
-        await Promise.all(rollbackPromises);
+        const rollbackResults = await Promise.all(order.items.map(item => {
+            if (item.packagingOptionId) {
+                return Product.findOneAndUpdate(
+                    { _id: item.product, 'packagingOptions._id': item.packagingOptionId },
+                    { $inc: { 'packagingOptions.$.stock': item.quantity } },
+                    { new: true }
+                );
+            }
+            return Product.findByIdAndUpdate(item.product, { $inc: { stock: item.quantity } }, { new: true });
+        }));
+        if (rollbackResults.some(result => !result)) {
+            throw new Error('Unable to restore inventory for one or more returned products');
+        }
         sysLog('INVENTORY', `Stock reversed back into shelf for Order [${orderId}]. Status: ${status}`);
     }
 

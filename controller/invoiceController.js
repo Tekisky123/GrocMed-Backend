@@ -124,21 +124,22 @@ export const downloadInvoice = async (req, res) => {
 
             const matchingOpt = item.product?.packagingOptions?.find(
                 opt => String(opt._id) === String(item.packagingOptionId) || opt.id === item.packagingOptionId
+            ) || item.product?.packagingOptions?.find(
+                opt => item.packagingLabel && opt.label.toLowerCase() === item.packagingLabel.toLowerCase()
             );
-            const unitsPerPack = matchingOpt?.unitsPerPack || item.unitsPerPack || item.product?.unitsPerUnitType || item.product?.unitsPerPack || 1;
-            const packDetail = matchingOpt?.label || item.packagingLabel || item.unit || item.product?.unitType || '';
+            const unitsPerPack = item.unitsPerPack || matchingOpt?.unitsPerPack || item.product?.unitsPerUnitType || item.product?.unitsPerPack || 1;
+            const packDetail = item.packagingLabel || matchingOpt?.label || item.unit || item.product?.unitType || '';
             const weightVolume = item.product?.perUnitWeightVolume || '';
 
-            let unitTypeName = item.product?.unitType;
-            if (!unitTypeName) {
-                const lowerLabel = packDetail.toLowerCase();
-                if (lowerLabel.includes('box')) unitTypeName = 'Box';
-                else if (lowerLabel.includes('strip')) unitTypeName = 'Strip';
-                else if (lowerLabel.includes('carton')) unitTypeName = 'Carton';
-                else if (lowerLabel.includes('jar')) unitTypeName = 'Jar';
-                else if (lowerLabel.includes('bottle')) unitTypeName = 'Bottle';
-                else unitTypeName = 'Pack';
-            }
+            let unitTypeName = '';
+            const lowerLabel = packDetail.toLowerCase();
+            if (lowerLabel.includes('box')) unitTypeName = 'Box';
+            else if (lowerLabel.includes('strip')) unitTypeName = 'Strip';
+            else if (lowerLabel.includes('carton')) unitTypeName = 'Carton';
+            else if (lowerLabel.includes('jar')) unitTypeName = 'Jar';
+            else if (lowerLabel.includes('bottle')) unitTypeName = 'Bottle';
+            else if (lowerLabel.includes('pack')) unitTypeName = 'Pack';
+            else unitTypeName = item.product?.unitType || 'Pack';
             const pluralUnit = item.quantity === 1 ? unitTypeName : `${unitTypeName}s`;
 
             const totalItems = item.quantity * unitsPerPack;
