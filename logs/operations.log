@@ -353,3 +353,10 @@
 [2026-09-06T06:03:13.525Z] [INVENTORY] Stock reversed back into shelf for Order [6a9d0220985248be9bb29ecb]. Status: Returned
 [2026-09-06T06:03:13.612Z] [FINANCE] Posted Sales Return (Credit Note) CN/9BB29ECB for Order [6a9d0220985248be9bb29ecb].
 [2026-09-06T06:03:14.568Z] [INVENTORY] Stock reversed back into shelf for Order [6a9d0222985248be9bb29f14]. Status: Cancelled
+[2026-09-06T07:30:35.192Z] [INVENTORY] Stock reversed back into shelf for Order [6a9d169a420dbb0ce3430031]. Status: Cancelled
+[2026-09-06T07:30:36.594Z] [INVENTORY] Stock reversed back into shelf for Order [6a9d169c420dbb0ce343006b]. Status: Cancelled
+[2026-09-06T07:30:37.320Z] [FINANCE] COD Payment collected via Cash for Order [6a9d169d420dbb0ce3430095]. Status set to Paid.
+[2026-09-06T07:30:37.400Z] [FINANCE] Posted Sales Journal Entry SAL/E3430095 for Order [6a9d169d420dbb0ce3430095].
+[2026-09-06T07:30:37.951Z] [INVENTORY] Stock reversed back into shelf for Order [6a9d169d420dbb0ce3430095]. Status: Returned
+[2026-09-06T07:30:38.027Z] [FINANCE] Posted Sales Return (Credit Note) CN/E3430095 for Order [6a9d169d420dbb0ce3430095].
+[2026-09-06T07:30:39.057Z] [INVENTORY] Stock reversed back into shelf for Order [6a9d169e420dbb0ce34300de]. Status: Cancelled

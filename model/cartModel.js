@@ -54,11 +54,11 @@ const cartSchema = new mongoose.Schema(
     }
 );
 
-// Calculate total amount before saving
 cartSchema.pre('save', function () {
-    this.totalAmount = this.items.reduce((total, item) => {
-        return total + item.price * item.quantity;
+    const rawTotal = this.items.reduce((total, item) => {
+        return total + (Number(item.price) || 0) * (Number(item.quantity) || 0);
     }, 0);
+    this.totalAmount = Math.round(rawTotal * 100) / 100;
 });
 
 const Cart = mongoose.model('Cart', cartSchema);
