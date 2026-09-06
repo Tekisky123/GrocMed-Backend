@@ -48,8 +48,9 @@ export const removeFromCart = async (req, res, next) => {
     try {
         const customerId = req.customer._id;
         const { productId } = req.params;
+        const packagingOptionId = req.query.packagingOptionId || req.body?.packagingOptionId || null;
 
-        const cart = await removeFromCartService(customerId, productId);
+        const cart = await removeFromCartService(customerId, productId, packagingOptionId);
 
         res.status(200).json({
             success: true,

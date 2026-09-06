@@ -11,6 +11,11 @@ export const addToCartService = async (customerId, productId, quantity, packagin
     let packagingLabel = null;
     let unitsPerPack = product.unitsPerUnitType || 1;
 
+    // Auto-default packagingOptionId if product has packagingOptions but option is unspecified
+    if (!packagingOptionId && product.packagingOptions?.length > 0) {
+        packagingOptionId = product.packagingOptions[0]._id.toString();
+    }
+
     if (packagingOptionId && product.packagingOptions?.length > 0) {
         const option = product.packagingOptions.find(
             (o) => o._id.toString() === packagingOptionId.toString()
@@ -35,9 +40,11 @@ export const addToCartService = async (customerId, productId, quantity, packagin
     if (cart) {
         // Find existing item matching product + same packaging option
         const itemIndex = cart.items.findIndex(
-            (item) =>
-                item.product.toString() === productId &&
-                (item.packagingOptionId?.toString() || 'default') === optionKey
+            (item) => {
+                const itemProdId = item.product?._id ? item.product._id.toString() : item.product.toString();
+                const itemOptKey = item.packagingOptionId ? item.packagingOptionId.toString() : 'default';
+                return itemProdId === productId && itemOptKey === optionKey;
+            }
         );
 
         if (itemIndex > -1) {
@@ -85,6 +92,21 @@ export const addToCartService = async (customerId, productId, quantity, packagin
         });
     }
 
+    // Deduplicate cart items for safety
+    const mergedMap = new Map();
+    cart.items.forEach(item => {
+        const pId = item.product?._id ? item.product._id.toString() : item.product.toString();
+        const optKey = item.packagingOptionId ? item.packagingOptionId.toString() : 'default';
+        const key = `${pId}_${optKey}`;
+        if (mergedMap.has(key)) {
+            const existing = mergedMap.get(key);
+            existing.quantity += item.quantity;
+        } else {
+            mergedMap.set(key, item);
+        }
+    });
+    cart.items = Array.from(mergedMap.values());
+
     await cart.save();
     return cart;
 };
@@ -98,6 +120,31 @@ export const getCartService = async (customerId) => {
     if (!cart) {
         return { items: [], totalAmount: 0 };
     }
+
+    // Deduplicate items in retrieved cart if needed
+    if (cart.items && cart.items.length > 0) {
+        const mergedMap = new Map();
+        let hasDuplicates = false;
+        cart.items.forEach(item => {
+            if (!item.product) return;
+            const pId = item.product._id ? item.product._id.toString() : item.product.toString();
+            const optKey = item.packagingOptionId ? item.packagingOptionId.toString() : 'default';
+            const key = `${pId}_${optKey}`;
+            if (mergedMap.has(key)) {
+                hasDuplicates = true;
+                const existing = mergedMap.get(key);
+                existing.quantity += item.quantity;
+            } else {
+                mergedMap.set(key, item);
+            }
+        });
+
+        if (hasDuplicates) {
+            cart.items = Array.from(mergedMap.values());
+            await cart.save();
+        }
+    }
+
     return cart;
 };
 

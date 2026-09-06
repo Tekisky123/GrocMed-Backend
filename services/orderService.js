@@ -95,13 +95,18 @@ export const createOrderService = async (customerId, orderData) => {
         for (const item of cart.items) {
             if (!item.product) throw new Error('Product in cart not found');
             
+            let targetPkgOptId = item.packagingOptionId;
+            if (!targetPkgOptId && item.product.packagingOptions?.length > 0) {
+                targetPkgOptId = item.product.packagingOptions[0]._id;
+            }
+
             let updatedProduct;
-            if (item.packagingOptionId) {
+            if (targetPkgOptId) {
                 // Atomic check & deduct from specific packaging option
                 updatedProduct = await Product.findOneAndUpdate(
                     { 
                         _id: item.product._id, 
-                        'packagingOptions._id': item.packagingOptionId,
+                        'packagingOptions._id': targetPkgOptId,
                         'packagingOptions.stock': { $gte: item.quantity } 
                     },
                     { $inc: { 'packagingOptions.$.stock': -item.quantity } },
@@ -396,10 +401,18 @@ export const updateOrderStatusService = async (orderId, status, deliveryPartnerI
     const wasAlreadyReversed = (previousStatus === 'Cancelled' || previousStatus === 'Returned');
     
     if (isReversingStock && !wasAlreadyReversed) {
-        const rollbackResults = await Promise.all(order.items.map(item => {
-            if (item.packagingOptionId) {
+        const rollbackResults = await Promise.all(order.items.map(async item => {
+            let pkgOptId = item.packagingOptionId;
+            const productDoc = await Product.findById(item.product);
+            if (!productDoc) return null;
+
+            if (!pkgOptId && productDoc.packagingOptions?.length > 0) {
+                pkgOptId = productDoc.packagingOptions[0]._id;
+            }
+
+            if (pkgOptId) {
                 return Product.findOneAndUpdate(
-                    { _id: item.product, 'packagingOptions._id': item.packagingOptionId },
+                    { _id: item.product, 'packagingOptions._id': pkgOptId },
                     { $inc: { 'packagingOptions.$.stock': item.quantity } },
                     { new: true }
                 );
