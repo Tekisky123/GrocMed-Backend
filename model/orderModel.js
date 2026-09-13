@@ -75,7 +75,7 @@ const orderSchema = new mongoose.Schema(
         igstAmount: { type: Number, default: 0 },
         paymentMethod: {
             type: String,
-            enum: ['COD', 'Online'], // Cash on Delivery or Online
+            enum: ['COD', 'Online', 'UPI', 'CARD', 'WALLET', 'NETBANKING', 'Card', 'Wallet', 'NetBanking', 'cod', 'online', 'upi'], // Supported payment methods
             default: 'COD',
         },
         paymentStatus: {
