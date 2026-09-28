@@ -96,13 +96,28 @@ export const createOrderService = async (customerId, orderData) => {
             if (!item.product) throw new Error('Product in cart not found');
             
             let targetPkgOptId = item.packagingOptionId;
-            if (!targetPkgOptId && item.product.packagingOptions?.length > 0) {
-                targetPkgOptId = item.product.packagingOptions[0]._id;
+            let matchedOpt = null;
+
+            if (item.product.packagingOptions?.length > 0) {
+                if (targetPkgOptId) {
+                    matchedOpt = item.product.packagingOptions.find(
+                        (opt) => String(opt._id) === String(targetPkgOptId) || opt.id === String(targetPkgOptId)
+                    );
+                }
+                if (!matchedOpt && item.packagingLabel) {
+                    matchedOpt = item.product.packagingOptions.find(
+                        (opt) => opt.label.toLowerCase().trim() === item.packagingLabel.toLowerCase().trim()
+                    );
+                }
+                if (!matchedOpt) {
+                    matchedOpt = item.product.packagingOptions[0];
+                }
+                targetPkgOptId = matchedOpt ? matchedOpt._id : null;
             }
 
             let updatedProduct;
             if (targetPkgOptId) {
-                // Atomic check & deduct from specific packaging option
+                // Atomic check & deduct from specific packaging option (Carton / Pack)
                 updatedProduct = await Product.findOneAndUpdate(
                     { 
                         _id: item.product._id, 
@@ -126,19 +141,20 @@ export const createOrderService = async (customerId, orderData) => {
                 if (!prodCheck) throw new Error(`Product not found`);
                 
                 let availableStock = 0;
-                if (item.packagingOptionId) {
-                    const opt = prodCheck.packagingOptions.id(item.packagingOptionId);
+                if (targetPkgOptId && prodCheck.packagingOptions?.length > 0) {
+                    const opt = prodCheck.packagingOptions.find(p => String(p._id) === String(targetPkgOptId));
                     availableStock = opt ? opt.stock : 0;
                 } else {
                     availableStock = prodCheck.stock || 0;
                 }
                 
-                throw new Error(`Insufficient stock for ${prodCheck.name}${item.packagingLabel ? ' ' + item.packagingLabel : ''}. Available: ${availableStock}, Requested: ${item.quantity}`);
+                const optLabel = matchedOpt?.label || item.packagingLabel || '';
+                throw new Error(`Insufficient stock for ${prodCheck.name}${optLabel ? ' (' + optLabel + ')' : ''}. Available: ${availableStock}, Requested: ${item.quantity}`);
             }
 
             lockedProducts.push({
                 productId: updatedProduct._id,
-                packagingOptionId: item.packagingOptionId,
+                packagingOptionId: targetPkgOptId,
                 quantity: item.quantity
             });
         }
@@ -406,8 +422,22 @@ export const updateOrderStatusService = async (orderId, status, deliveryPartnerI
             const productDoc = await Product.findById(item.product);
             if (!productDoc) return null;
 
-            if (!pkgOptId && productDoc.packagingOptions?.length > 0) {
-                pkgOptId = productDoc.packagingOptions[0]._id;
+            if (productDoc.packagingOptions?.length > 0) {
+                let matchedOpt = null;
+                if (pkgOptId) {
+                    matchedOpt = productDoc.packagingOptions.find(
+                        (opt) => String(opt._id) === String(pkgOptId) || opt.id === String(pkgOptId)
+                    );
+                }
+                if (!matchedOpt && item.packagingLabel) {
+                    matchedOpt = productDoc.packagingOptions.find(
+                        (opt) => opt.label.toLowerCase().trim() === item.packagingLabel.toLowerCase().trim()
+                    );
+                }
+                if (!matchedOpt) {
+                    matchedOpt = productDoc.packagingOptions[0];
+                }
+                pkgOptId = matchedOpt ? matchedOpt._id : null;
             }
 
             if (pkgOptId) {

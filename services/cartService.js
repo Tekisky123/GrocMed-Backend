@@ -11,21 +11,24 @@ export const addToCartService = async (customerId, productId, quantity, packagin
     let packagingLabel = null;
     let unitsPerPack = product.unitsPerUnitType || 1;
 
-    // Auto-default packagingOptionId if product has packagingOptions but option is unspecified
-    if (!packagingOptionId && product.packagingOptions?.length > 0) {
-        packagingOptionId = product.packagingOptions[0]._id.toString();
+    let selectedOpt = null;
+    if (product.packagingOptions?.length > 0) {
+        if (packagingOptionId) {
+            selectedOpt = product.packagingOptions.find(
+                (o) => String(o._id) === String(packagingOptionId) || o.id === String(packagingOptionId)
+            );
+        }
+        if (!selectedOpt) {
+            selectedOpt = product.packagingOptions[0];
+        }
     }
 
-    if (packagingOptionId && product.packagingOptions?.length > 0) {
-        const option = product.packagingOptions.find(
-            (o) => o._id.toString() === packagingOptionId.toString()
-        );
-        if (!option) throw new Error('Packaging option not found');
-
-        price = option.salePrice;
-        minimumQty = option.minQty || 1;
-        packagingLabel = option.label;
-        unitsPerPack = option.unitsPerPack || 1;
+    if (selectedOpt) {
+        price = selectedOpt.salePrice;
+        minimumQty = selectedOpt.minQty || 1;
+        packagingLabel = selectedOpt.label;
+        unitsPerPack = selectedOpt.unitsPerPack || 1;
+        packagingOptionId = selectedOpt._id.toString();
     } else {
         // Fallback to product-level pricing
         price = product.offerPrice || product.singleUnitPrice || product.mrp;
