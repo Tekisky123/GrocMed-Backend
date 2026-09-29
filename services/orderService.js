@@ -121,8 +121,12 @@ export const createOrderService = async (customerId, orderData) => {
                 updatedProduct = await Product.findOneAndUpdate(
                     { 
                         _id: item.product._id, 
-                        'packagingOptions._id': targetPkgOptId,
-                        'packagingOptions.stock': { $gte: item.quantity } 
+                        packagingOptions: {
+                            $elemMatch: {
+                                _id: targetPkgOptId,
+                                stock: { $gte: item.quantity }
+                            }
+                        }
                     },
                     { $inc: { 'packagingOptions.$.stock': -item.quantity } },
                     { new: true }
@@ -163,7 +167,14 @@ export const createOrderService = async (customerId, orderData) => {
         for (const lock of lockedProducts) {
             if (lock.packagingOptionId) {
                 await Product.findOneAndUpdate(
-                    { _id: lock.productId, 'packagingOptions._id': lock.packagingOptionId },
+                    { 
+                        _id: lock.productId, 
+                        packagingOptions: {
+                            $elemMatch: {
+                                _id: lock.packagingOptionId
+                            }
+                        }
+                    },
                     { $inc: { 'packagingOptions.$.stock': lock.quantity } }
                 );
             } else {
@@ -442,7 +453,14 @@ export const updateOrderStatusService = async (orderId, status, deliveryPartnerI
 
             if (pkgOptId) {
                 return Product.findOneAndUpdate(
-                    { _id: item.product, 'packagingOptions._id': pkgOptId },
+                    { 
+                        _id: item.product, 
+                        packagingOptions: {
+                            $elemMatch: {
+                                _id: pkgOptId
+                            }
+                        }
+                    },
                     { $inc: { 'packagingOptions.$.stock': item.quantity } },
                     { new: true }
                 );
