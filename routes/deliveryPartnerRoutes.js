@@ -17,10 +17,19 @@ import { authenticateToken, isAdmin, isDeliveryPartner } from '../middleware/aut
 import { validateCreateDeliveryPartner, validateUpdateDeliveryPartner } from '../middleware/validationMiddleware.js';
 import { upload } from '../middleware/uploadMiddleware.js';
 
+import {
+    sendResetOtpController,
+    verifyResetOtpController,
+    resetPasswordController,
+} from '../controller/passwordResetController.js';
+
 const router = express.Router();
 
 // Public Routes
 router.post('/loginDeliveryPartner', loginDeliveryPartner);
+router.post('/forgot-password/send-otp', sendResetOtpController('delivery_partner'));
+router.post('/forgot-password/verify-otp', verifyResetOtpController('delivery_partner'));
+router.post('/forgot-password/reset-password', resetPasswordController('delivery_partner'));
 
 // Admin Only Routes
 router.post('/createDeliveryPartner', authenticateToken, isAdmin, validateCreateDeliveryPartner, createDeliveryPartner);

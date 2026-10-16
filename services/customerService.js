@@ -111,6 +111,14 @@ export const updateCustomerService = async (id, updateData) => {
         if (adhaarExists) throw new Error('Adhaar already in use');
     }
 
+    let hashedPassword = undefined;
+    if (updateData.password && updateData.password.trim()) {
+        if (updateData.password.trim().length < 6) {
+            throw new Error('New password must be at least 6 characters long');
+        }
+        hashedPassword = await bcrypt.hash(updateData.password.trim(), 10);
+    }
+
     const updatedCustomer = await Customer.findByIdAndUpdate(
         id,
         {
@@ -124,6 +132,7 @@ export const updateCustomerService = async (id, updateData) => {
             ...(licenseNumber && { licenseNumber }),
             ...(adhaarImage && { adhaarImage }),
             ...(licenseImage && { licenseImage }),
+            ...(hashedPassword && { password: hashedPassword }),
         },
         { new: true, runValidators: true }
     ).select('-password');
@@ -197,3 +206,34 @@ export const getCustomerNotificationsService = async (customerId, page = 1, limi
         totalPages: Math.ceil(total / limit)
     };
 };
+
+export const adminUpdateCustomerPasswordService = async (customerId, newPassword) => {
+    if (!newPassword || newPassword.length < 6) {
+        throw new Error('New password must be at least 6 characters long');
+    }
+
+    const customer = await Customer.findById(customerId);
+    if (!customer) {
+        throw new Error('Customer not found');
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    customer.password = hashedPassword;
+    await customer.save();
+
+    // Reset any blocked password reset OTP records for this customer so their OTP limit is restored
+    try {
+        const PasswordResetOtp = (await import('../model/passwordResetOtpModel.js')).default;
+        if (customer.phone) {
+            await PasswordResetOtp.deleteMany({ phone: customer.phone, role: 'customer' });
+        }
+    } catch (e) {
+        console.error('Failed to clear OTP record after admin reset:', e.message);
+    }
+
+    return {
+        success: true,
+        message: `Password for "${customer.name || customer.phone}" updated successfully.`
+    };
+};
+

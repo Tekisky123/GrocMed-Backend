@@ -10,6 +10,7 @@ import {
     updateFcmToken,
     searchCustomers,
     getCustomerNotifications,
+    adminUpdateCustomerPassword,
 } from '../controller/customerController.js';
 import { authenticateToken, isCustomer, isAdmin } from '../middleware/authMiddleware.js';
 import {
@@ -19,6 +20,12 @@ import {
 } from '../middleware/validationMiddleware.js';
 
 import { upload } from '../middleware/uploadMiddleware.js';
+
+import {
+    sendResetOtpController,
+    verifyResetOtpController,
+    resetPasswordController,
+} from '../controller/passwordResetController.js';
 
 const router = express.Router();
 
@@ -34,6 +41,11 @@ router.post(
 );
 router.post('/login', validateLoginCustomer, loginCustomer);
 
+// Password Reset Routes (WhatsApp OTP)
+router.post('/forgot-password/send-otp', sendResetOtpController('customer'));
+router.post('/forgot-password/verify-otp', verifyResetOtpController('customer'));
+router.post('/forgot-password/reset-password', resetPasswordController('customer'));
+
 // Protected Customer Routes
 router.post('/logout', authenticateToken, logoutCustomer);
 router.get('/profile', authenticateToken, isCustomer, getCustomerProfile);
@@ -46,5 +58,6 @@ router.get('/getAllCustomers', authenticateToken, isAdmin, getAllCustomers);
 router.get('/search', authenticateToken, isAdmin, searchCustomers);
 router.get('/getCustomerById/:id', authenticateToken, isAdmin, getCustomerProfile);
 router.delete('/deleteCustomer/:id', authenticateToken, isAdmin, deleteCustomer);
+router.put('/admin/updateCustomerPassword/:id', authenticateToken, isAdmin, adminUpdateCustomerPassword);
 
 export default router;

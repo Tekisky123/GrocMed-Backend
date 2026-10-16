@@ -86,9 +86,22 @@ export const downloadInvoice = async (req, res) => {
         const addressStr = `${shippingAddr.street || ''}, ${shippingAddr.city || ''}, ${shippingAddr.state || ''} - ${shippingAddr.zip || ''}`;
 
         doc.fillColor('#F8800E').fontSize(9).font('Helvetica-Bold').text('BILL TO / SHIPPING TO', 400, partiesY);
-        doc.fillColor('#000').fontSize(11).font('Helvetica-Bold').text(order.customer?.name || 'Customer', 400, partiesY + 12);
+
+        const hasShopName = !!(order.customer?.shopName && order.customer.shopName.trim());
+        const primaryBusinessTitle = hasShopName ? order.customer.shopName.trim() : (order.customer?.name || 'Customer');
+
+        // Prominent Shop Name (or Customer Name if shop name not set)
+        doc.fillColor('#000').fontSize(11).font('Helvetica-Bold').text(primaryBusinessTitle, 400, partiesY + 12);
+
+        // Contact person, Address, and Business Credentials
+        let buyerDetailsText = '';
+        if (hasShopName && order.customer?.name) {
+            buyerDetailsText += `Customer: ${order.customer.name}\n`;
+        }
+        buyerDetailsText += `${addressStr}\nPhone: ${order.customer?.phone || 'N/A'}\nGSTIN: ${order.customer?.gstNumber || order.customer?.licenseNumber || 'Unregistered'}`;
+
         doc.fillColor('#444').fontSize(8).font('Helvetica').text(
-            `${addressStr}\nPhone: ${order.customer?.phone || 'N/A'}\nGSTIN: ${order.customer?.gstNumber || 'Unregistered'}`,
+            buyerDetailsText,
             400, partiesY + 26, { width: 165, lineGap: 2 }
         );
 

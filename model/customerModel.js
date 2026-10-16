@@ -2,10 +2,11 @@ import mongoose from 'mongoose';
 
 const addressSchema = new mongoose.Schema({
     street: { type: String, required: true },
+    landmark: { type: String, trim: true },
     city: { type: String, required: true },
     state: { type: String, required: true },
     zip: { type: String, required: true },
-    type: { type: String, enum: ['Home', 'Work', 'Other'], default: 'Home' },
+    type: { type: String, enum: ['Home', 'Work', 'Shop', 'Other'], default: 'Shop' },
     isDefault: { type: Boolean, default: false }
 });
 

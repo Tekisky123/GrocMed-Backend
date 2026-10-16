@@ -360,3 +360,10 @@
 [2026-09-06T07:30:37.951Z] [INVENTORY] Stock reversed back into shelf for Order [6a9d169d420dbb0ce3430095]. Status: Returned
 [2026-09-06T07:30:38.027Z] [FINANCE] Posted Sales Return (Credit Note) CN/E3430095 for Order [6a9d169d420dbb0ce3430095].
 [2026-09-06T07:30:39.057Z] [INVENTORY] Stock reversed back into shelf for Order [6a9d169e420dbb0ce34300de]. Status: Cancelled
+[2026-10-15T19:17:56.678Z] [API-TRAFFIC] POST /api/customer/forgot-password/send-otp | Status: 200 | IP: ::1
+[2026-10-15T19:40:26.649Z] [API-TRAFFIC] POST /api/customer/forgot-password/send-otp | Status: 200 | IP: ::1
+[2026-10-15T19:40:49.320Z] [API-TRAFFIC] POST /api/customer/forgot-password/verify-otp | Status: 200 | IP: ::1
+[2026-10-15T19:41:12.358Z] [API-TRAFFIC] POST /api/customer/forgot-password/reset-password | Status: 200 | IP: ::1
+[2026-10-15T19:41:16.522Z] [API-TRAFFIC] POST /api/customer/login | Status: 401 | IP: ::1
+[2026-10-15T19:41:23.178Z] [API-TRAFFIC] POST /api/customer/login | Status: 200 | IP: ::1
+[2026-10-15T20:54:24.704Z] [API-TRAFFIC] PUT /api/customer/profile | Status: 200 | IP: ::1

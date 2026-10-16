@@ -10,6 +10,7 @@ import {
     searchCustomersService,
     getCustomerWithOrdersService,
     getCustomerNotificationsService,
+    adminUpdateCustomerPasswordService,
 } from '../services/customerService.js';
 
 import { uploadImageToS3 } from '../utils/s3Upload.js';
@@ -222,3 +223,19 @@ export const getCustomerNotifications = async (req, res) => {
         });
     }
 };
+
+export const adminUpdateCustomerPassword = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { password } = req.body;
+        const result = await adminUpdateCustomerPasswordService(id, password);
+        res.status(200).json(result);
+    } catch (error) {
+        console.error('[customerController.adminUpdateCustomerPassword] Error:', error.message);
+        res.status(400).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+

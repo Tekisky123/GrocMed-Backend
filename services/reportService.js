@@ -47,6 +47,7 @@ export const generateSalesReportService = async (startDate, endDate) => {
         // Define columns
         ordersSheet.columns = [
             { header: 'Order ID', key: 'orderId', width: 20 },
+            { header: 'Shop Name', key: 'shopName', width: 25 },
             { header: 'Customer Name', key: 'customerName', width: 25 },
             { header: 'Phone', key: 'phone', width: 15 },
             { header: 'Email', key: 'email', width: 30 },
@@ -72,6 +73,7 @@ export const generateSalesReportService = async (startDate, endDate) => {
         orders.forEach(order => {
             ordersSheet.addRow({
                 orderId: order._id ? order._id.toString() : 'N/A',
+                shopName: order.customer?.shopName || 'No Shop Name',
                 customerName: order.customer?.name || 'N/A',
                 phone: order.customer?.phone || 'N/A',
                 email: order.customer?.email || 'N/A',
@@ -181,7 +183,8 @@ export const generateSalesReportService = async (startDate, endDate) => {
 
         customersSheet.columns = [
             { header: 'Customer ID', key: 'customerId', width: 20 },
-            { header: 'Name', key: 'name', width: 25 },
+            { header: 'Shop Name', key: 'shopName', width: 25 },
+            { header: 'Customer / Owner Name', key: 'name', width: 25 },
             { header: 'Email', key: 'email', width: 30 },
             { header: 'Phone', key: 'phone', width: 15 },
             { header: 'Registration Date', key: 'regDate', width: 20 },
@@ -206,6 +209,7 @@ export const generateSalesReportService = async (startDate, endDate) => {
 
             customersSheet.addRow({
                 customerId: customer._id ? customer._id.toString() : 'N/A',
+                shopName: customer.shopName || 'No Shop Name',
                 name: customer.name || 'N/A',
                 email: customer.email || 'N/A',
                 phone: customer.phone || 'N/A',
