@@ -280,6 +280,7 @@ export const createOrderService = async (customerId, orderData) => {
         
         finalAddress = {
             street: addrObj.streetAddress || addrObj.street || '',
+            landmark: addrObj.landmark || '',
             city: addrObj.city || '',
             state: addrObj.state || '',
             zip: addrObj.postalCode || addrObj.zip || '',

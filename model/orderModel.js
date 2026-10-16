@@ -45,6 +45,7 @@ const orderSchema = new mongoose.Schema(
         items: [orderItemSchema],
         shippingAddress: {
             street: String,
+            landmark: String,
             city: String,
             state: String,
             zip: String,
