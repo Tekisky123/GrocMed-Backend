@@ -171,6 +171,26 @@ export const validateRegisterCustomer = (req, res, next) => {
     console.log('[Backend Validation] No files parsed (req.files is undefined/null).');
   }
 
+  // Sanitize input values
+  if (req.body.name) req.body.name = String(req.body.name).trim();
+  if (req.body.shopName) req.body.shopName = String(req.body.shopName).trim();
+  if (req.body.email) req.body.email = String(req.body.email).trim().toLowerCase();
+  if (req.body.phone) {
+    let rawPhone = String(req.body.phone).trim().replace(/\D/g, '');
+    if (rawPhone.length === 12 && rawPhone.startsWith('91')) {
+      rawPhone = rawPhone.slice(2);
+    } else if (rawPhone.length === 11 && rawPhone.startsWith('0')) {
+      rawPhone = rawPhone.slice(1);
+    }
+    req.body.phone = rawPhone;
+  }
+  if (req.body.adhaar) {
+    req.body.adhaar = String(req.body.adhaar).trim().replace(/\D/g, '');
+  }
+  if (req.body.pan) {
+    req.body.pan = String(req.body.pan).trim().toUpperCase();
+  }
+
   const { name, phone, email, password, shopName } = req.body;
 
   if (!name || !phone || !email || !password || !shopName) {
@@ -202,8 +222,6 @@ export const validateRegisterCustomer = (req, res, next) => {
       message: 'Password must be at least 6 characters long',
     });
   }
-
-
 
   if (req.body.pan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(req.body.pan)) {
     return res.status(400).json({
