@@ -17,12 +17,12 @@ const pincodeSchema = new mongoose.Schema(
         city: {
             type: String,
             trim: true,
-            default: '',
+            default: 'Hyderabad',
         },
         state: {
             type: String,
             trim: true,
-            default: '',
+            default: 'Telangana',
         },
         isActive: {
             type: Boolean,

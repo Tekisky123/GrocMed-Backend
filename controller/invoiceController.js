@@ -1,5 +1,7 @@
 import PDFDocument from 'pdfkit';
 import Order from '../model/orderModel.js';
+import Customer from '../model/customerModel.js';
+import Product from '../model/productModel.js';
 
 export const downloadInvoice = async (req, res) => {
     try {
@@ -63,7 +65,7 @@ export const downloadInvoice = async (req, res) => {
         doc.fillColor('#F8800E').fontSize(9).font('Helvetica-Bold').text('SOLD BY / SELLER', 30, partiesY);
         doc.fillColor('#000').fontSize(11).font('Helvetica-Bold').text('Apky Dark Stores Private Limited', 30, partiesY + 12);
         doc.fillColor('#444').fontSize(8).font('Helvetica').text(
-            '16-11-1/41-45 saleem nagar,\nMalakpet Colony Hyderabad.\nTelangana 500036\nGSTIN: 36ABECA5204C1Z9\nEmail: contact@apkydarkstores.com',
+            '16-11-1/41-45 Saleem Nagar,\nMalakpet Colony, Hyderabad,\nTelangana - 500036\nGSTIN: 36ABECA5204C1Z9\nEmail: info@grocmed.com',
             30, partiesY + 26, { width: 180, lineGap: 2 }
         );
 
@@ -79,11 +81,42 @@ export const downloadInvoice = async (req, res) => {
         // Buyer Information
         let shippingAddr = {};
         try {
-            shippingAddr = typeof order.shippingAddress === 'string' ? JSON.parse(order.shippingAddress) : order.shippingAddress;
+            shippingAddr = typeof order.shippingAddress === 'string' ? JSON.parse(order.shippingAddress) : (order.shippingAddress || {});
         } catch(e) {
             shippingAddr = order.shippingAddress || {};
         }
-        const addressStr = `${shippingAddr.street || ''}, ${shippingAddr.city || ''}, ${shippingAddr.state || ''} - ${shippingAddr.zip || ''}`;
+
+        let city = (shippingAddr.city || '').trim();
+        if (!city || city.toLowerCase().includes('default')) {
+            city = 'Hyderabad';
+        }
+        let state = (shippingAddr.state || '').trim();
+        if (!state || state.toLowerCase().includes('default')) {
+            state = 'Telangana';
+        }
+
+        let street = (shippingAddr.street || '').trim();
+        street = street
+            .replace(/,\s*default\s*city/gi, '')
+            .replace(/default\s*city/gi, '')
+            .replace(/,\s*default\s*state/gi, '')
+            .replace(/default\s*state/gi, '')
+            .replace(/\s{2,}/g, ' ')
+            .replace(/,\s*,/g, ',')
+            .replace(/^[,\s]+|[,\s]+$/g, '');
+
+        const addrParts = [];
+        if (street) addrParts.push(street);
+        if (city && !street.toLowerCase().includes(city.toLowerCase())) {
+            addrParts.push(city);
+        }
+        if (state && !street.toLowerCase().includes(state.toLowerCase())) {
+            addrParts.push(state);
+        }
+        let addressStr = addrParts.join(', ');
+        if (shippingAddr.zip) {
+            addressStr += ` - ${shippingAddr.zip}`;
+        }
 
         doc.fillColor('#F8800E').fontSize(9).font('Helvetica-Bold').text('BILL TO / SHIPPING TO', 400, partiesY);
 
@@ -243,18 +276,74 @@ export const downloadInvoice = async (req, res) => {
             doc.text(value, valX, y, { width: 85, align: 'right' });
         };
 
+        // Determine if supply is Intra-State (Telangana) or Inter-State
+        const sState = state.toLowerCase();
+        const sCity = city.toLowerCase();
+        const isIntraState = 
+            sState === 'telangana' || 
+            sState === 'ts' || 
+            sState === 'tg' || 
+            sState === '36' || 
+            sState.includes('telangana') || 
+            sCity.includes('hyderabad') || 
+            !sState || 
+            sState.includes('default');
+
+        const isInterState = !isIntraState;
+
+        // Calculate items total, taxable value, and tax amounts
+        let grossSubtotal = 0;
+        let calculatedTaxable = 0;
+        let calculatedTax = 0;
+
+        order.items.forEach((item) => {
+            const itemTotal = item.price * item.quantity;
+            grossSubtotal += itemTotal;
+            const gstRate = item.gstRate || 0;
+            const itemTaxable = itemTotal / (1 + (gstRate / 100));
+            calculatedTaxable += itemTaxable;
+            calculatedTax += (itemTotal - itemTaxable);
+        });
+
+        // Use stored tax if available and matches, else calculated
+        let effectiveTax = calculatedTax;
+        const storedTax = (order.taxAmount && order.taxAmount > 0)
+            ? order.taxAmount
+            : ((order.cgstAmount || 0) + (order.sgstAmount || 0) + (order.igstAmount || 0));
+
+        if (storedTax > 0) {
+            effectiveTax = storedTax;
+        }
+
+        const taxableValue = Math.max(0, grossSubtotal - effectiveTax);
+
+        let displayCgst = 0;
+        let displaySgst = 0;
+        let displayIgst = 0;
+
+        if (isIntraState) {
+            // Intra-state (Telangana): 50% CGST and 50% SGST (e.g., 5% -> 2.5% CGST + 2.5% SGST)
+            displayCgst = effectiveTax / 2;
+            displaySgst = effectiveTax / 2;
+            displayIgst = 0;
+        } else {
+            // Inter-state: 100% IGST
+            displayCgst = 0;
+            displaySgst = 0;
+            displayIgst = effectiveTax;
+        }
+
         let currentY = summaryY;
-        const subtotal = order.items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-        addSummaryRow('Subtotal (Taxable Value):', `Rs. ${subtotal.toFixed(2)}`, currentY);
+        addSummaryRow('Subtotal (Taxable Value):', `Rs. ${taxableValue.toFixed(2)}`, currentY);
         
         currentY += 15;
-        addSummaryRow('IGST Amount:', `Rs. ${(order.igstAmount || 0).toFixed(2)}`, currentY);
+        addSummaryRow('CGST Amount:', `Rs. ${displayCgst.toFixed(2)}`, currentY);
         
         currentY += 15;
-        addSummaryRow('CGST Amount:', `Rs. ${(order.cgstAmount || 0).toFixed(2)}`, currentY);
-        
+        addSummaryRow('SGST Amount:', `Rs. ${displaySgst.toFixed(2)}`, currentY);
+
         currentY += 15;
-        addSummaryRow('SGST Amount:', `Rs. ${(order.sgstAmount || 0).toFixed(2)}`, currentY);
+        addSummaryRow('IGST Amount:', `Rs. ${displayIgst.toFixed(2)}`, currentY);
 
         currentY += 15;
         addSummaryRow('Delivery Charge:', `Rs. ${(order.deliveryCharge || 0).toFixed(2)}`, currentY);

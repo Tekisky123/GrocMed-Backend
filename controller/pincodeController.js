@@ -58,7 +58,14 @@ export const createPincode = async (req, res) => {
             return res.status(409).json({ success: false, message: `Pincode ${pincode} already exists` });
         }
 
-        const newPincode = await Pincode.create({ pincode, area, city, state, isActive, deliveryNote });
+        const newPincode = await Pincode.create({
+            pincode,
+            area,
+            city: (city && !city.toLowerCase().includes('default')) ? city : 'Hyderabad',
+            state: (state && !state.toLowerCase().includes('default')) ? state : 'Telangana',
+            isActive,
+            deliveryNote
+        });
         return res.status(201).json({ success: true, data: newPincode, message: 'Pincode added successfully' });
     } catch (error) {
         return res.status(400).json({ success: false, message: error.message });

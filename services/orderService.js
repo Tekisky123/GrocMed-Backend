@@ -82,12 +82,41 @@ export const createOrderService = async (customerId, orderData) => {
         throw new Error(`Minimum order amount is ₹${minOrderValue}. Your current cart subtotal is ₹${subtotal}. Please add more items to place an order.`);
     }
 
-    // Setup business home state
-    const BUSINESS_HOME_STATE = process.env.STORE_STATE || 'TS';
-    let isInterState = false;
-    if (shippingAddress && shippingAddress.state) {
-        isInterState = shippingAddress.state.trim().toUpperCase() !== BUSINESS_HOME_STATE.trim().toUpperCase();
+    // Setup shipping address and business home state
+    let parsedShippingAddress = {};
+    if (shippingAddress) {
+        if (typeof shippingAddress === 'string') {
+            try {
+                parsedShippingAddress = JSON.parse(shippingAddress);
+            } catch (e) {
+                parsedShippingAddress = { street: shippingAddress };
+            }
+        } else {
+            parsedShippingAddress = { ...shippingAddress };
+        }
     }
+
+    let addrCity = (parsedShippingAddress.city || '').trim();
+    if (!addrCity || addrCity.toLowerCase().includes('default')) {
+        addrCity = 'Hyderabad';
+    }
+    let addrState = (parsedShippingAddress.state || '').trim();
+    if (!addrState || addrState.toLowerCase().includes('default')) {
+        addrState = 'Telangana';
+    }
+
+    const stateLower = addrState.toLowerCase();
+    const cityLower = addrCity.toLowerCase();
+    const isTelangana = 
+        stateLower === 'telangana' || 
+        stateLower === 'ts' || 
+        stateLower === 'tg' || 
+        stateLower === '36' || 
+        stateLower.includes('telangana') || 
+        cityLower.includes('hyderabad') || 
+        !stateLower;
+
+    const isInterState = !isTelangana;
 
     // Try to atomically lock stock for all items
     const lockedProducts = [];
@@ -278,11 +307,21 @@ export const createOrderService = async (customerId, orderData) => {
             }
         }
         
+        let cleanStreet = (addrObj.streetAddress || addrObj.street || '').trim();
+        cleanStreet = cleanStreet
+            .replace(/,\s*default\s*city/gi, '')
+            .replace(/default\s*city/gi, '')
+            .replace(/,\s*default\s*state/gi, '')
+            .replace(/default\s*state/gi, '')
+            .replace(/\s{2,}/g, ' ')
+            .replace(/,\s*,/g, ',')
+            .replace(/^[,\s]+|[,\s]+$/g, '');
+
         finalAddress = {
-            street: addrObj.streetAddress || addrObj.street || '',
+            street: cleanStreet,
             landmark: addrObj.landmark || '',
-            city: addrObj.city || '',
-            state: addrObj.state || '',
+            city: addrCity,
+            state: addrState,
             zip: addrObj.postalCode || addrObj.zip || '',
             addressType: addrObj.type || addrObj.addressType || ''
         };
